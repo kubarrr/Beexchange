@@ -1,0 +1,43 @@
+<!-- Supabase → Authentication → Emails → Templates → "Magic Link"
+     Temat (Subject): 🐝 BeeXchange: link do logowania / your login link
+     Język wybiera się sam: EN dla kont z locale "en" (przełącznik w aplikacji), w pozostałych przypadkach PL. -->
+{{ $en := eq (printf "%v" .Data.locale) "en" }}
+<!doctype html>
+<html lang="{{ if $en }}en{{ else }}pl{{ end }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeeXchange</title>
+</head>
+<body style="margin:0;padding:0;background:#FFF7E2;font-family:Helvetica,Arial,sans-serif;color:#17140F;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFF7E2;padding:32px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFFFF;border:2px solid #17140F;border-radius:24px;overflow:hidden;">
+        <tr>
+          <td style="background:#FFC52E;padding:28px 32px;border-bottom:2px solid #17140F;">
+            <span style="font-size:26px;font-weight:800;letter-spacing:-0.5px;"><span style="background:#17140F;color:#FFC52E;padding:2px 8px;border-radius:8px;">Bee</span>Xchange</span>
+            <div style="margin-top:6px;font-size:14px;font-weight:600;">Exchange together</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px;">
+            <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.2;">{{ if $en }}Back to the swarm 🐝{{ else }}Wracasz do roju 🐝{{ end }}</h1>
+            <p style="margin:0 0 24px 0;font-size:16px;line-height:1.5;">{{ if $en }}Click the button to log in. The link works once, for one hour.{{ else }}Kliknij przycisk, żeby się zalogować. Link działa przez godzinę i tylko raz.{{ end }}</p>
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:#17140F;border-radius:14px;">
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/roj" style="display:inline-block;padding:16px 28px;font-size:17px;font-weight:700;color:#FFC52E;text-decoration:none;">{{ if $en }}Log in →{{ else }}Zaloguj się →{{ end }}</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0 0;font-size:13px;line-height:1.5;color:#5E574A;">{{ if $en }}Not you? Ignore this email. Nobody can log in without access to your inbox.{{ else }}To nie Ty? Zignoruj tę wiadomość, nikt nie zaloguje się bez dostępu do Twojej skrzynki.{{ end }}</p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0 0;font-size:12px;color:#5E574A;">{{ if $en }}BeeXchange · made by students who have been on exchange{{ else }}BeeXchange · stworzone przez studentów po wymianach{{ end }}</p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

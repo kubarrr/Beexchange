@@ -1,23 +1,35 @@
 {
-  "name": "beerasmus-tmp",
+  "name": "beerasmus",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:institutions": "node scripts/import-institutions.mjs",
+    "test:e2e": "node scripts/e2e-test.mjs",
+    "test:e2e:cleanup": "node scripts/e2e-cleanup.mjs",
+    "demo:seed": "node scripts/seed-demo.mjs",
+    "test:browser": "playwright test",
+    "test:load": "node scripts/load-test.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
+    "country-flag-icons": "^1.6.20",
+    "lucide-react": "^1.49.0",
     "next": "16.3.7",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^18.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.3.7",
     "tailwindcss": "^4",

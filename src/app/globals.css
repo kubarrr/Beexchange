@@ -1,26 +1,97 @@
 @import "tailwindcss";
 
+@theme {
+  /* BeeXchange */
+  --color-honey: #ffc52e;
+  --color-honey-deep: #e0a200;
+  --color-ink: #17140f;
+  --color-ink-soft: #2a251c;
+  --color-cream: #fff7e2;
+  --color-paper: #fffdf7;
+  --color-sand: #f3e6c3;
+  --color-line: #eadfc4;
+  --color-muted: #5e574a;
+  --color-mist: #cfc6b2;
+
+  /* skala używana przez starsze, ukryte moduły */
+  --color-honey-50: #fffbeb;
+  --color-honey-100: #fff3c4;
+  --color-honey-200: #ffe58a;
+  --color-honey-300: #ffd75c;
+  --color-honey-400: #ffc52e;
+  --color-honey-500: #f5b000;
+  --color-honey-600: #d99700;
+  --color-honey-700: #a86f00;
+
+  --font-sans: var(--font-onest);
+  --font-display: var(--font-bricolage);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+.honeycomb {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98' viewBox='0 0 56 98'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zm0 32L0 82V50l28 16 28-16v32L28 98z' fill='none' stroke='%23e0a200' stroke-opacity='.45' stroke-width='2'/%3E%3C/svg%3E");
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-ink px-5 font-display text-base font-bold text-honey shadow-[0_5px_0_#6b5200] transition active:translate-y-0.5 active:shadow-[0_3px_0_#6b5200] disabled:opacity-50;
+  }
+  .btn-honey {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-honey px-4 text-sm font-bold text-ink transition hover:bg-honey-deep disabled:opacity-50;
+  }
+  .btn-outline {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-ink bg-transparent px-4 text-sm font-bold text-ink transition hover:bg-ink hover:text-honey disabled:opacity-50;
+  }
+  .field {
+    @apply min-h-12 w-full rounded-2xl border-[1.5px] border-line bg-white px-4 text-[15px] outline-none transition placeholder:text-[#8a8170] focus:border-ink;
+  }
+  .label-caps {
+    @apply text-xs font-bold tracking-wider text-muted uppercase;
+  }
+  .panel {
+    @apply rounded-3xl border-[1.5px] border-line bg-white;
+  }
+  .chip {
+    @apply inline-flex min-h-10 items-center rounded-full border-2 border-line bg-white px-3.5 text-sm font-semibold text-ink transition;
+  }
+  .chip-on {
+    @apply border-ink bg-ink text-honey;
+  }
+  .chip-honey {
+    @apply border-ink bg-honey text-ink;
+  }
+  .display {
+    @apply font-display font-extrabold tracking-tight;
+  }
+
+  /* starsze moduły */
+  .card {
+    @apply rounded-2xl border border-ink/10 bg-white p-5 shadow-sm;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-honey transition hover:bg-black disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-sand;
+  }
+  .input {
+    @apply w-full rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-honey-500 focus:ring-2 focus:ring-honey-300;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-ink/80;
+  }
+  .h1 {
+    @apply font-display text-3xl font-extrabold tracking-tight sm:text-4xl;
+  }
+  .h2 {
+    @apply font-display text-xl font-bold tracking-tight;
+  }
 }
