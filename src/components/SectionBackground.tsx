@@ -54,7 +54,8 @@ function Bees({ flights }: { flights: Flight[] }) {
 
 // Same sześciokąty jak w plastrze miodu (bez dodatkowych linii), jeden kolor
 function HexCells() {
-  const r = 22;
+  // Duże komórki (ok. 6 na ekranie telefonu), bardzo jasne krawędzie, żeby nie konkurowały z tekstem
+  const r = 125;
   const w = Math.sqrt(3) * r;
   const hex = (cx: number, cy: number) =>
     [-90, -30, 30, 90, 150, 210].map((a) => `${(cx + r * Math.cos((a * Math.PI) / 180)).toFixed(2)},${(cy + r * Math.sin((a * Math.PI) / 180)).toFixed(2)}`).join(" ");
@@ -70,7 +71,7 @@ function HexCells() {
       <defs>
         <pattern id="hex-cells" width={w} height={3 * r} patternUnits="userSpaceOnUse">
           {centers.map(([x, y], i) => (
-            <polygon key={i} points={hex(x, y)} fill="none" stroke="#e0a200" strokeOpacity="0.4" strokeWidth="2" />
+            <polygon key={i} points={hex(x, y)} fill="none" stroke="#f0b92a" strokeOpacity="0.22" strokeWidth="5" strokeLinejoin="round" />
           ))}
         </pattern>
       </defs>
