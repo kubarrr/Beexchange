@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { GroupFlag } from "@/components/GroupKindIcon";
 import { notFound } from "next/navigation";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { joinGroup, joinGroupById, leaveGroup } from "@/app/actions/bx";
-import { Flag } from "@/components/bx";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, type Institution } from "@/lib/domain";
 import { groupTitle, type GroupKind, type Suggestion } from "@/lib/groups";
@@ -69,7 +69,7 @@ export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
           </Link>
           <div className="min-w-0 flex-1">
             <p className="display flex min-w-0 items-center gap-2 text-lg">
-              <Flag code={group.country_code} className="h-3.5 w-5" />
+              <GroupFlag kind={group.kind} country_code={group.country_code} nat_cc={group.nat_cc} />
               <span className="truncate">{title}</span>
             </p>
             <p className="truncate text-[13px] text-mist">

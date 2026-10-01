@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 import { createGroup, joinGroupById } from "@/app/actions/bx";
-import { EmptyState, Flag, PageTitle } from "@/components/bx";
-import { GroupKindIcon } from "@/components/GroupKindIcon";
+import { EmptyState, PageTitle } from "@/components/bx";
+import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
 import { groupTitle, type GroupKind } from "@/lib/groups";
@@ -115,7 +115,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
                 <GroupKindIcon kind={g.kind} />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 leading-tight font-bold">
-                    {g.country_code && <Flag code={g.country_code} className="h-3 w-[18px]" />}
+                    <GroupFlag kind={g.kind} country_code={g.country_code} nat_cc={g.nat_cc} className="h-3 w-[18px]" />
                     <span className="break-words">{title}</span>
                   </p>
                   <p className="text-[13px] text-muted">

@@ -238,6 +238,14 @@ check("Pasja: kawa → Kasia", same(await people(zuza, { p_passion: "coffee" }),
 check("Bocconi + zima 26/27 → Adam, Ania", same(await people(zuza, { p_inst: BOC.id, p_sem: "2026W" }), ["Bot Adam", "Bot Ania"]));
 check("Wydział: „Nauk Ekonom” → Kasia (UW, Wydział Nauk Ekonomicznych)", same(await people(zuza, { p_field: "Nauk Ekonom" }), ["Bot Kasia"]));
 {
+  const fin = await people(zuza, { p_field: "finansów" });
+  check("Kierunek z inną końcówką: „finansów” znajduje „Finanse”", ["Bot Adam", "Bot Kasia"].every((n) => fin.includes(n)), fin.join(", "));
+}
+check("Słowa w dowolnej kolejności i bez polskich znaków: „ekonomicznych nauk” → Kasia", same(await people(zuza, { p_field: "ekonomicznych nauk" }), ["Bot Kasia"]));
+check("Skrót wydziału: „WNE” → Kasia", same(await people(zuza, { p_field: "WNE" }), ["Bot Kasia"]));
+check("Uczelnia macierzysta: UW → Kasia (druga uczelnia), bez Adama", (await people(zuza, { p_home: UW.id })).includes("Bot Kasia") && !(await people(zuza, { p_home: UW.id })).includes("Bot Adam"));
+check("Uczelnia macierzysta + wydział liczą się razem: SGH + „Nauk Ekonom” → nikt", same(await people(zuza, { p_home: SGH.id, p_field: "Nauk Ekonom" }), []));
+{
   const { data } = await zuza.db.rpc("faculties_at", { p_inst: UW.id });
   check("Podpowiedzi wydziałów dla UW: wpis Kasi na początku, bez duplikatu", data?.[0]?.faculty === "Wydział Nauk Ekonomicznych (WNE)" && data.filter((r) => r.faculty.startsWith("Wydział Nauk Ekonomicznych")).length === 1);
   const { data: fields } = await zuza.db.rpc("fields_at", { p_inst: SGH.id });
@@ -474,10 +482,10 @@ await page(zuza, "/roj", ["SGH → Bocconi", "Polacy · Bocconi", "Bot Giulia"])
 await page(giulia, "/roj", ["Przyjezdni u Ciebie", "Wszyscy · Bocconi"]);
 await page(obcy, "/roj");
 await page(zuza, "/ludzie", ["Bot Kasia"]);
-await page(zuza, "/ludzie?seg=been&home=1", ["Bot Kasia"]);
+await page(zuza, `/ludzie?seg=been&hu=${SGH.id}`, ["Bot Kasia"]);
 await page(zuza, "/ludzie?ex=all&cc=IT&city=Milan", ["Bot Michał"]);
 await page(kasia, "/roj", ["Bocconi", "Lizbona", "Alumni · Warszawa"]);
-await page(zuza, `/ludzie?ex=all&passion=coffee`, ["Bot Kasia"]);
+await page(zuza, `/ludzie?ex=all&hu=${UW.id}&field=ekonomicznych`, ["Bot Kasia"]);
 await page(zuza, `/u/${kasia.id}`, ["Bot Kasia"]);
 await page(zuza, `/grupy/${gid}`, ["Hej, szukamy razem mieszkania?"]);
 await page(obcy, `/grupy/${gid}`);
@@ -508,7 +516,7 @@ section("Wersja angielska (czy nic nie zostało po polsku)");
   const dict = readFileSync("src/lib/i18n/dictionaries.ts", "utf8");
   const plBlock = dict.slice(dict.indexOf("const pl = {"), dict.indexOf("export type Dictionary"));
   const enBlock = dict.slice(dict.indexOf("const en: Dictionary = {"), dict.indexOf("export const dictionaries"));
-  const lits = (b) => new Set([...b.matchAll(/"([^"\\]{5,})"/g)].map((m) => m[1]));
+  const lits = (b) => new Set([...b.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)].map((m) => m[1]).filter((x) => x.length >= 5));
   const enSet = lits(enBlock);
   const polish = [...lits(plBlock)].filter((x) => !enSet.has(x) && /[a-ząćęłńóśźż]/i.test(x));
   check(`Słownik: ${polish.length} polskich tekstów do wyszukania`, polish.length > 100);
@@ -524,7 +532,9 @@ section("Wersja angielska (czy nic nie zostało po polsku)");
     const res = await fetch(APP + path, { headers: { cookie: `${bot ? bot.cookie + "; " : ""}lang=en`, "accept-language": "pl-PL" }, redirect: "manual" });
     const html = res.status === 200 ? await res.text() : "";
     const text = visible(html);
-    const leaks = polish.filter((x) => text.includes(x));
+    // Całe słowa („Profil” to nie przeciek w „Profile”); pojedyncze krótkie słowa pomijamy,
+    // bo mogą pochodzić z treści pisanych przez ludzi (np. „Miejsce podamy…” w opisie wydarzenia)
+    const leaks = polish.filter((x) => (x.includes(" ") || x.length >= 9) && new RegExp(`(?<!\\p{L})${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "u").test(text));
     check(`EN ${path}`, res.status === 200 && html.includes('lang="en"') && leaks.length === 0, res.status !== 200 ? `HTTP ${res.status}` : leaks.slice(0, 4).join(" | ") || "brak lang=en");
   };
   for (const path of ["/", "/login", "/regulamin", "/prywatnosc"]) await pageEn(null, path);

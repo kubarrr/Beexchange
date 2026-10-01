@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Hexagon, MessageSquare } from "lucide-react";
 import { startConversation } from "@/app/actions";
 import { requestBuddy } from "@/app/actions/bx";
-import { BuddyBadge, InstLine, LanguageBadge, PassionEmoji, StatusBadge } from "@/components/bx";
+import { BuddyBadge, Flag, InstLine, LanguageBadge, PassionEmoji, StatusBadge } from "@/components/bx";
 import { ReportButton } from "@/components/ReportButton";
 import { requireProfile, type ExchangeRow, type HomeRow } from "@/lib/auth";
 import { INSTITUTION_FIELDS, countryName, institutionShort, semesterLabel, stageOf, type Status } from "@/lib/domain";
@@ -93,6 +93,16 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
               {mainHome.faculty && ` · ${mainHome.faculty}`}
               {mainHome.field_of_study && ` · ${mainHome.field_of_study}`}
               {mainHome.study && ` · ${studyLabel(mainHome.study, t)}`}
+            </p>
+          )}
+          {exchanges[0] && (
+            <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm font-semibold text-honey">
+              <span aria-hidden="true">✈️</span>
+              <Flag code={exchanges[0].institution.country_code} className="h-3 w-[18px]" />
+              <span className="truncate">
+                {institutionShort(exchanges[0].institution, locale)} · {semesterLabel(exchanges[0].semester, t)}
+                {exchanges.length > 1 && ` +${exchanges.length - 1}`}
+              </span>
             </p>
           )}
         </div>

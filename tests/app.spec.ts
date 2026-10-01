@@ -58,6 +58,10 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     // Ty: zdjęcie, pasje, języki
     const png = await sharp({ create: { width: 300, height: 400, channels: 3, background: "#e0a200" } }).png().toBuffer();
     await a.locator('input[type="file"]').setInputFiles({ name: "zdjecie.png", mimeType: "image/png", buffer: png });
+    const cropper = a.getByRole("dialog", { name: "Dopasuj zdjęcie" });
+    await cropper.getByRole("slider", { name: "Przybliżenie" }).fill("2");
+    await shot(a, "02b-kadrowanie");
+    await cropper.getByRole("button", { name: "Zapisz" }).click();
     await expect(a.locator('img[src*="/avatars/"]')).toBeVisible();
     await a.getByRole("button", { name: /Kawa/ }).click();
     await a.getByRole("button", { name: /Podróże/ }).click();
@@ -133,12 +137,16 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await expect(c).toHaveURL(/\/wiadomosci\//);
   });
 
-  test("Filtry ludzi: kraj i miasto (polskie nazwy)", async () => {
+  test("Filtry ludzi: uczelnia, kierunek, kraj i miasto (polskie nazwy)", async () => {
     await a.goto("/ludzie");
-    await a.getByRole("button", { name: "Filtry" }).click();
+    await a.getByRole("button", { name: "SGH", exact: true }).click();
+    await a.getByLabel("Kierunek lub wydział").fill("finansów");
+    await a.getByRole("button", { name: "Szukaj" }).click();
+    await expect(a).toHaveURL(new RegExp(`hu=${SGH}`));
+    await expect(a.getByRole("link", { name: "Bartek Testowy" })).toBeVisible();
+    await a.getByRole("button", { name: "Więcej filtrów" }).click();
     await a.getByLabel("Kraj").selectOption({ label: "Włochy" });
     await a.getByLabel("Miasto").selectOption({ label: "Mediolan" });
-    await a.getByRole("button", { name: /Tylko z mojej uczelni/ }).click();
     await shot(a, "08-filtry");
     await a.getByRole("button", { name: "Pokaż wyniki" }).click();
     await expect(a).toHaveURL(/cc=IT/);

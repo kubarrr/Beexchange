@@ -64,7 +64,7 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
     study_year: homes[0].study,
     exchange_institution_id: main?.institution_id ?? null,
     semester: main?.semester ?? null,
-    passions: (input.passions ?? []).filter((p) => (PASSION_KEYS as readonly string[]).includes(p)).slice(0, 5),
+    passions: (input.passions ?? []).filter((p) => (PASSION_KEYS as readonly string[]).includes(p)),
     languages: (input.languages ?? []).filter((l) => LANG.test(l)).slice(0, 8),
     bio: clip(input.bio, 1000),
     open_to_questions: !!input.open_to_questions,

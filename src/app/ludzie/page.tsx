@@ -6,7 +6,6 @@ import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, institutionShort, semesterLabel, stageOf, type Institution, type Status } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
-import { PASSION_KEYS } from "@/lib/i18n/dictionaries";
 import { PeopleFilters, type PeopleQuery } from "./PeopleFilters";
 
 export const generateMetadata = localizedTitle((t) => t.nav.people);
@@ -36,20 +35,19 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
   const seg = (["going", "been"].includes(str(sp.seg)) ? str(sp.seg) : "all") as PeopleQuery["seg"];
   const exParam = str(sp.ex);
   const exId = exParam === "all" ? null : Number(exParam) || me.exchange_institution_id;
-  const ex = exId
-    ? (me.exchanges.find((x) => x.institution_id === exId)?.institution ??
-      ((await supabase.from("institutions").select(INSTITUTION_FIELDS).eq("id", exId).maybeSingle()).data as Institution | null))
-    : null;
+  const huId = Number(str(sp.hu)) || null;
+  const myInsts = [...me.exchanges.map((x) => x.institution), ...me.homes.map((h) => h.institution)];
+  const loadInst = async (id: number | null) =>
+    id ? (myInsts.find((i) => i.id === id) ?? ((await supabase.from("institutions").select(INSTITUTION_FIELDS).eq("id", id).maybeSingle()).data as Institution | null)) : null;
+  const [ex, hu] = await Promise.all([loadInst(exId), loadInst(huId)]);
   const filters: PeopleQuery = {
     seg,
-    q: str(sp.q).slice(0, 60),
+    hu,
     ex,
+    field: str(sp.field).slice(0, 60),
     cc: /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "",
     city: str(sp.city).slice(0, 80),
-    home: sp.home === "1",
     sem: /^\d{4}[WS]$/.test(str(sp.sem)) ? str(sp.sem) : "",
-    field: str(sp.field).slice(0, 60),
-    passion: (PASSION_KEYS as readonly string[]).includes(str(sp.passion)) ? str(sp.passion) : "",
     buddy: sp.buddy === "1",
     open: sp.open === "1",
   };
@@ -62,12 +60,10 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
         p_sem: filters.sem || null,
         p_city: filters.city || null,
         p_cc: filters.cc || null,
-        p_home_only: filters.home,
+        p_home: filters.hu?.id ?? null,
         p_field: filters.field || null,
-        p_passion: filters.passion || null,
         p_buddy: filters.buddy,
         p_open: filters.open,
-        p_q: filters.q || null,
         lim: 60,
       })
       .select(
@@ -86,12 +82,18 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
     const i = r.institutions as unknown as { city: string | null; country_code: string } | null;
     if (i?.city) places.set(`${i.country_code}:${i.city}`, { city: i.city, cc: i.country_code });
   }
-  const homeName = me.home ? institutionShort(me.home, locale) : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
       <PageTitle title={t.people.title} lead={t.people.lead} />
-      <PeopleFilters key={JSON.stringify({ ...filters, ex: filters.ex?.id })} locale={locale} initial={filters} homeName={homeName} places={[...places.values()]} />
+      <PeopleFilters
+        key={JSON.stringify({ ...filters, ex: filters.ex?.id, hu: filters.hu?.id })}
+        locale={locale}
+        initial={filters}
+        myHomes={me.homes.map((h) => h.institution)}
+        myExchanges={me.exchanges.map((x) => x.institution)}
+        places={[...places.values()]}
+      />
       <p className="text-[13px] font-semibold text-muted">{t.people.found(people.length)}</p>
 
       {people.length === 0 ? (

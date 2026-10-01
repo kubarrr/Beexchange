@@ -34,9 +34,9 @@ export function countryName(code: string | null | undefined, locale: Locale) {
 }
 
 // Semestr zapisujemy jako kod: "2026W" = zima 2026/27, "2027S" = lato 2026/27
-// Absolwenci sprzed 2023 wybierają jedną opcję zamiast długiej listy starych semestrów
+// Absolwenci sprzed 2024 wybierają jedną opcję zamiast długiej listy starych semestrów
 export const EARLIER_SEMESTER = "2000W";
-const FIRST_LISTED_YEAR = 2023;
+const FIRST_LISTED_YEAR = 2024;
 
 export function semesterLabel(code: string | null | undefined, t: Dictionary) {
   if (!code) return "";

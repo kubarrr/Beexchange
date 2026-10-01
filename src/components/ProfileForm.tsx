@@ -241,7 +241,6 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
     </div>
   );
 
-  const passionCount = p.passions.length;
   const youSection = (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4">
@@ -253,23 +252,18 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <span className="label-caps">{t.profile.passions}</span>
-          <span className="text-sm font-bold">{passionCount}/5</span>
-        </div>
+        <span className="label-caps">{t.profile.passions}</span>
         <p className="text-[13px] text-muted">{t.profile.passionsHint}</p>
         <div className="flex flex-wrap gap-2">
           {PASSION_KEYS.map((key, i) => {
             const on = p.passions.includes(key);
-            const locked = !on && passionCount >= 5;
             return (
               <button
                 key={key}
                 type="button"
                 aria-pressed={on}
-                disabled={locked}
                 onClick={() => set({ passions: on ? p.passions.filter((x) => x !== key) : [...p.passions, key] })}
-                className={`chip gap-1.5 ${on ? "chip-honey" : ""} ${locked ? "cursor-not-allowed opacity-50" : ""}`}
+                className={`chip gap-1.5 ${on ? "chip-honey" : ""}`}
               >
                 <span aria-hidden="true">{PASSION_EMOJI[key]}</span>
                 {t.passions[i]}

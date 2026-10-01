@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { answerBuddy } from "@/app/actions/bx";
-import { Avatar, EmptyState, Flag, PageTitle } from "@/components/bx";
-import { GroupKindIcon } from "@/components/GroupKindIcon";
+import { Avatar, EmptyState, PageTitle } from "@/components/bx";
+import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
 import { groupTitle, type GroupKind } from "@/lib/groups";
@@ -97,7 +97,7 @@ export default async function ChatsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="flex min-w-0 items-center gap-2 font-bold">
-                        <Flag code={g.country_code} className="h-3 w-[18px]" />
+                        <GroupFlag kind={g.kind} country_code={g.country_code} nat_cc={g.nat_cc} className="h-3 w-[18px]" />
                         <span className="truncate">{title}</span>
                       </p>
                       {last && <span className="shrink-0 text-xs text-muted">{formatRelative(last.created_at, locale)}</span>}

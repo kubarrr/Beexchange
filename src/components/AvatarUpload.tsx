@@ -2,18 +2,9 @@
 
 import { useRef, useState } from "react";
 import { Camera } from "lucide-react";
+import { PhotoCropper } from "@/components/PhotoCropper";
 import { createClient } from "@/lib/supabase/client";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
-
-// Zmniejsza zdjęcie do kwadratu 512×512 (JPEG), żeby oszczędzać miejsce i transfer
-async function toSquareJpeg(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const side = Math.min(bitmap.width, bitmap.height);
-  const canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 512;
-  canvas.getContext("2d")!.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, 512, 512);
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/jpeg", 0.86));
-}
 
 export function AvatarUpload({
   locale,
@@ -34,16 +25,26 @@ export function AvatarUpload({
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [crop, setCrop] = useState<ImageBitmap | null>(null);
 
-  async function upload(file: File) {
+  // Najpierw kadrowanie, potem wysyłka kwadratu 512×512 (JPEG)
+  async function pick(file: File) {
     setError("");
     if (file.size > 8 * 1024 * 1024) {
       setError(t.profile.photoTooBig);
       return;
     }
+    try {
+      setCrop(await createImageBitmap(file));
+    } catch {
+      setError(t.profile.photoTooBig);
+    }
+  }
+
+  async function upload(blob: Blob) {
+    setCrop(null);
     setBusy(true);
     try {
-      const blob = await toSquareJpeg(file);
       const supabase = createClient();
       const path = `${userId}/${Date.now()}.jpg`;
       const { error } = await supabase.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg", upsert: true });
@@ -85,12 +86,13 @@ export function AvatarUpload({
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) upload(f);
+            if (f) pick(f);
             e.target.value = "";
           }}
         />
       </div>
       {error && <p className="text-xs text-red-700">{error}</p>}
+      {crop && <PhotoCropper locale={locale} bitmap={crop} onCancel={() => setCrop(null)} onDone={upload} />}
     </div>
   );
 }
