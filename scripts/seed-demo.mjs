@@ -218,8 +218,8 @@ await must(
   admin.from("rooms").insert([
     {
       author_id: ids.ola, country_code: "IT", city: "Milan", kind: "room", price: 690, currency: "EUR",
-      title: "Pokój w Città Studi od lutego · Room in Città Studi from February",
-      description: "Kończę wymianę w lutym i szukam kogoś na moje miejsce. 10 min pieszo do PoliMi, 3 współlokatorki (Włoszka i dwie Hiszpanki), rachunki w cenie.\n\nFinishing my exchange in February, looking for someone to take my room. 10 min walk to PoliMi, 3 flatmates, bills included.",
+      title: "Room in Città Studi from February",
+      description: "Finishing my exchange in February, looking for someone to take my room. 10 min walk to PoliMi, 3 flatmates (an Italian and two Spanish girls), bills included.",
       available_from: iso(120), available_to: iso(270), area: "Città Studi, metro Piola", taken: false,
     },
     {
@@ -237,4 +237,4 @@ await must(
   "pokoje",
 );
 console.log("Utworzono pokoje do przejęcia.");
-console.log(`\n✅ Gotowe. Zaloguj się jako ${ownerProfile.full_name} i otwórz http://localhost:3000/roj`);
+console.log(`\n✅ Gotowe. Zaloguj się jako ${ownerProfile.full_name} i otwórz http://localhost:3000/swarm`);

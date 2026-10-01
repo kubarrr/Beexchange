@@ -14,12 +14,12 @@ export const generateMetadata = localizedTitle((t) => t.nav.chats);
 type Person = { id: string; full_name: string; avatar_url: string | null };
 
 export default async function ChatsPage() {
-  const { supabase, userId } = await requireProfile("/czaty");
+  const { supabase, userId } = await requireProfile("/chats");
   const { t, locale } = await getDictionary();
 
   const [{ data: requests }, { data: checks }, { data: memberships }, { data: conversations }, { data: unreadRows }] = await Promise.all([
     supabase.from("buddy_requests").select("id, created_at, from:profiles!buddy_requests_from_user_fkey(id, full_name, avatar_url)").eq("to_user", userId).eq("status", "pending"),
-    // 🔎 prośby o sprawdzenie mieszkania (nowe i przyjęte, żeby po obejrzeniu oznaczyć „sprawdzone”)
+    // 🕵️ prośby o sprawdzenie mieszkania (nowe i przyjęte, żeby po obejrzeniu oznaczyć „sprawdzone”)
     supabase
       .from("check_requests")
       .select("id, city, details, status, from:profiles!check_requests_requester_id_fkey(id, full_name, avatar_url)")
@@ -147,7 +147,7 @@ export default async function ChatsPage() {
               const last = g.group_messages[0];
               const n = unread.get(`group:${g.id}`);
               return (
-                <Link key={g.id} href={`/grupy/${g.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
+                <Link key={g.id} href={`/groups/${g.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
                   <GroupKindIcon kind={g.kind} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
@@ -167,7 +167,7 @@ export default async function ChatsPage() {
         ) : (
           <EmptyState
             action={
-              <Link href="/roj" className="btn-primary">
+              <Link href="/swarm" className="btn-primary">
                 {t.nav.swarm}
               </Link>
             }
@@ -188,7 +188,7 @@ export default async function ChatsPage() {
               const last = (c.messages as { body: string; sender_id: string }[])[0];
               const n = unread.get(`direct:${c.id}`);
               return (
-                <Link key={c.id} href={`/wiadomosci/${c.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
+                <Link key={c.id} href={`/messages/${c.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
                   <Avatar name={other.full_name} url={other.avatar_url} size={48} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">

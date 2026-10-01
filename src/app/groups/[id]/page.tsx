@@ -12,9 +12,9 @@ import { GroupChat, type GroupMessage, type Member } from "./GroupChat";
 
 export const generateMetadata = localizedTitle((t) => t.nav.chats);
 
-export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
+export default async function GroupPage({ params }: PageProps<"/groups/[id]">) {
   const id = Number((await params).id);
-  const { supabase, userId } = await requireProfile(`/grupy/${id}`);
+  const { supabase, userId } = await requireProfile(`/groups/${id}`);
   const { t, locale } = await getDictionary();
 
   const { data: group } = await supabase
@@ -64,7 +64,7 @@ export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
     <div className="mx-auto flex h-[calc(100dvh-64px-96px)] max-w-2xl flex-col md:h-[calc(100dvh-64px-24px)]">
       <div className="rounded-b-[28px] bg-ink px-4 pt-3 pb-4 text-cream">
         <div className="flex items-center gap-3">
-          <Link href="/czaty" aria-label={t.common.back} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink-soft">
+          <Link href="/chats" aria-label={t.common.back} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink-soft">
             <ArrowLeft size={20} strokeWidth={2.5} />
           </Link>
           <div className="min-w-0 flex-1">

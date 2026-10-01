@@ -9,9 +9,9 @@ import { RoomForm } from "./RoomForm";
 
 export const generateMetadata = localizedTitle((t) => t.housing.newTitle);
 
-export default async function NewRoomPage({ searchParams }: PageProps<"/mieszkania/nowy">) {
+export default async function NewRoomPage({ searchParams }: PageProps<"/housing/new">) {
   const sp = await searchParams;
-  const { userId, profile } = await requireProfile("/mieszkania/nowy");
+  const { userId, profile } = await requireProfile("/housing/new");
   const { t, locale } = await getDictionary();
   // Pokój można wystawić tylko w mieście swojej wymiany albo uczelni (pilnuje tego też baza)
   const places = [...myCities(profile).values()].map((p) => ({ ...p, label: cityName(p.city, locale) }));
@@ -20,7 +20,7 @@ export default async function NewRoomPage({ searchParams }: PageProps<"/mieszkan
   return (
     <div className="mx-auto max-w-xl space-y-5 px-4 py-6">
       <div className="flex items-center gap-3">
-        <Link href="/mieszkania" aria-label={t.common.back} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-[1.5px] border-line bg-white">
+        <Link href="/housing" aria-label={t.common.back} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-[1.5px] border-line bg-white">
           <ArrowLeft size={20} strokeWidth={2.5} />
         </Link>
         <h1 className="display text-[28px] leading-tight">{t.housing.newTitle}</h1>

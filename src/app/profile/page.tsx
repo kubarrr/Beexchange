@@ -8,7 +8,7 @@ import { toProfileFormInitial } from "@/lib/profile-initial";
 export const generateMetadata = localizedTitle((t) => t.nav.profile);
 
 export default async function MyProfilePage() {
-  const { userId, profile } = await requireProfile("/profil");
+  const { userId, profile } = await requireProfile("/profile");
   const { locale } = await getDictionary();
   return (
     <>

@@ -59,7 +59,7 @@ export function RoomForm({ locale, userId, places, initial }: { locale: Locale; 
         photos,
       });
       if (!res.ok) return setError(res.error);
-      router.push(`/mieszkania?cc=${country_code}&city=${encodeURIComponent(rest.join(":"))}&tab=rooms`);
+      router.push(`/housing?cc=${country_code}&city=${encodeURIComponent(rest.join(":"))}&tab=rooms`);
     });
   }
 

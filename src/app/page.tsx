@@ -8,7 +8,7 @@ import { getDictionary } from "@/lib/i18n";
 export default async function Home({ searchParams }: PageProps<"/">) {
   const { deleted } = await searchParams;
   const { userId } = await getCurrentUser();
-  if (userId) redirect("/roj");
+  if (userId) redirect("/swarm");
   const { t } = await getDictionary();
 
   const features = [

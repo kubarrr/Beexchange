@@ -8,7 +8,7 @@ export const generateMetadata = localizedTitle((t) => t.login.title);
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next, error } = await searchParams;
-  const nextPath = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/roj";
+  const nextPath = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/swarm";
   const { t, locale } = await getDictionary();
   const errorText =
     error === "otp_expired" || error === "access_denied"
@@ -30,11 +30,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <LoginForm next={nextPath} locale={locale} />
         <p className="mt-5 text-center text-xs leading-relaxed text-muted">
           {t.login.consentA}
-          <Link href="/regulamin" className="font-semibold underline">
+          <Link href="/terms" className="font-semibold underline">
             {t.login.terms}
           </Link>
           {t.login.consentAnd}
-          <Link href="/prywatnosc" className="font-semibold underline">
+          <Link href="/privacy" className="font-semibold underline">
             {t.login.privacy}
           </Link>
           .

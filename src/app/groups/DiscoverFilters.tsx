@@ -15,7 +15,7 @@ function toUrl(q: DiscoverQuery) {
   if (q.city) sp.set("city", q.city);
   if (q.inst) sp.set("inst", String(q.inst.id));
   if (q.sem) sp.set("sem", q.sem);
-  return `/grupy?${sp.toString()}`;
+  return `/groups?${sp.toString()}`;
 }
 
 export function DiscoverFilters({ locale, q, cities }: { locale: Locale; q: DiscoverQuery; cities: string[] }) {

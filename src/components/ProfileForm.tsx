@@ -86,7 +86,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         setError(res.error);
         return;
       }
-      if (mode === "onboarding") router.push("/roj");
+      if (mode === "onboarding") router.push("/swarm");
       else {
         setSaved(true);
         router.refresh();
@@ -277,8 +277,9 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
     </div>
   );
 
-  const youSection = (
-    <div className="space-y-6">
+  // Sekcje profilu (kolejność w edycji: imię → etap → uczelnie → wymiany → o mnie → pasje i języki → kontakt)
+  const identitySection = (
+    <>
       <div className="flex flex-col items-center gap-4">
         <AvatarUpload locale={locale} userId={userId} name={p.full_name} url={p.avatar_url} onChange={(avatar_url) => set({ avatar_url })} size={176} />
         <label className="w-full space-y-1.5">
@@ -286,7 +287,11 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
           <input className="field font-semibold" value={p.full_name} onChange={(e) => set({ full_name: e.target.value })} />
         </label>
       </div>
+    </>
+  );
 
+  const passionsSection = (
+    <>
       <div className="space-y-2">
         <span className="label-caps">{t.profile.passions}</span>
         <p className="text-[13px] text-muted">{t.profile.passionsHint}</p>
@@ -308,14 +313,20 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
           })}
         </div>
       </div>
+    </>
+  );
 
-      {languagesSection}
-
+  const aboutSection = (
+    <>
       <label className="block space-y-1.5">
         <span className="label-caps">{t.profile.about}</span>
         <textarea className="field min-h-24 py-3" rows={3} value={p.bio} placeholder={t.profile.aboutPh} onChange={(e) => set({ bio: e.target.value })} />
       </label>
+    </>
+  );
 
+  const contactSection = (
+    <>
       <div className="space-y-1">
         <span className="label-caps">{t.profile.contact}</span>
         <button type="button" onClick={() => set({ open_to_questions: !p.open_to_questions })} aria-pressed={p.open_to_questions} className="flex min-h-14 w-full items-center gap-3 text-left">
@@ -335,6 +346,17 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
           </button>
         ))}
       </div>
+    </>
+  );
+
+  // Krok „Ty” w onboardingu
+  const youSection = (
+    <div className="space-y-6">
+      {identitySection}
+      {aboutSection}
+      {passionsSection}
+      {languagesSection}
+      {contactSection}
     </div>
   );
 
@@ -440,7 +462,10 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         </Link>
       </div>
       <div className="space-y-10">
-        <section>{youSection}</section>
+        <section className="space-y-6">
+          {identitySection}
+          {stageSection}
+        </section>
         <section className="space-y-3">
           <h2 className="display text-xl">{t.profile.studies}</h2>
           {homesSection}
@@ -448,7 +473,12 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         <section className="space-y-3">
           <h2 className="display text-xl">{t.profile.exchanges}</h2>
           {exchangesSection}
-          {stageSection}
+        </section>
+        <section className="space-y-6">
+          {aboutSection}
+          {passionsSection}
+          {languagesSection}
+          {contactSection}
         </section>
         {errorBox}
         <button type="button" onClick={submit} disabled={pending || !p.homes[0]?.inst || !p.full_name.trim() || !exchangesValid} className="btn-primary sticky bottom-24 min-h-14 w-full text-lg md:bottom-4">

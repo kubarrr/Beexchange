@@ -53,7 +53,7 @@ export const MY_PROFILE_SELECT = `id, full_name, avatar_url, status, semester, f
   exchanges(id, institution_id, semester, status, institution:institutions(${INSTITUTION_FIELDS}))`;
 
 // Zalogowany użytkownik z uzupełnionym profilem, inaczej przekierowanie do logowania lub onboardingu
-export async function requireProfile(next = "/roj") {
+export async function requireProfile(next = "/swarm") {
   const { supabase, userId } = await requireUser(next);
   const { data } = await supabase.from("profiles").select(MY_PROFILE_SELECT).eq("id", userId).single();
   const profile = data as unknown as MyProfile | null;

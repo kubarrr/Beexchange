@@ -8,11 +8,11 @@ import { CalendarDays, Hexagon, House, MessageSquare, Users } from "lucide-react
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
 const ITEMS = [
-  { href: "/roj", key: "swarm", Icon: Hexagon },
-  { href: "/ludzie", key: "people", Icon: Users },
-  { href: "/mieszkania", key: "housing", Icon: House },
-  { href: "/wydarzenia", key: "events", Icon: CalendarDays },
-  { href: "/czaty", key: "chats", Icon: MessageSquare },
+  { href: "/swarm", key: "swarm", Icon: Hexagon },
+  { href: "/people", key: "people", Icon: Users },
+  { href: "/housing", key: "housing", Icon: House },
+  { href: "/events", key: "events", Icon: CalendarDays },
+  { href: "/chats", key: "chats", Icon: MessageSquare },
 ] as const;
 // Profil jest pod zdjęciem w prawym górnym rogu (Header)
 
@@ -50,9 +50,9 @@ function useActive() {
   return (href: string) =>
     path === href ||
     path.startsWith(href + "/") ||
-    (href === "/czaty" && (path.startsWith("/wiadomosci") || path.startsWith("/grupy/"))) ||
-    (href === "/roj" && path === "/grupy") ||
-    (href === "/ludzie" && path.startsWith("/u/"));
+    (href === "/chats" && (path.startsWith("/messages") || path.startsWith("/groups/"))) ||
+    (href === "/swarm" && path === "/groups") ||
+    (href === "/people" && path.startsWith("/u/"));
 }
 
 export function DesktopNav({ locale, unread = 0 }: { locale: Locale; unread?: number }) {

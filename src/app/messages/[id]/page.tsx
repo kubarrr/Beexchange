@@ -11,9 +11,9 @@ export const generateMetadata = localizedTitle((t) => t.nav.chats);
 
 type Person = { id: string; full_name: string; avatar_url: string | null; field_of_study: string };
 
-export default async function ConversationPage({ params }: PageProps<"/wiadomosci/[id]">) {
+export default async function ConversationPage({ params }: PageProps<"/messages/[id]">) {
   const { id } = await params;
-  const { supabase, userId } = await requireUser(`/wiadomosci/${id}`);
+  const { supabase, userId } = await requireUser(`/messages/${id}`);
   const { t, locale } = await getDictionary();
 
   const { data: conv } = await supabase
@@ -34,7 +34,7 @@ export default async function ConversationPage({ params }: PageProps<"/wiadomosc
   return (
     <div className="mx-auto flex h-[calc(100dvh-64px-96px)] max-w-2xl flex-col md:h-[calc(100dvh-64px-24px)]">
       <div className="flex items-center gap-3 rounded-b-[28px] bg-ink px-4 py-3 text-cream">
-        <Link href="/czaty" aria-label={t.common.back} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink-soft">
+        <Link href="/chats" aria-label={t.common.back} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-ink-soft">
           <ArrowLeft size={20} strokeWidth={2.5} />
         </Link>
         <Link href={`/u/${other.id}`} className="flex min-w-0 items-center gap-3">

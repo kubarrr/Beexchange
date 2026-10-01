@@ -23,7 +23,7 @@ const GROUP_ORDER: GroupKind[] = ["nat_uni", "nat_city", "semester", "city", "na
 const VISIBLE_PER_EXCHANGE = 2;
 
 export default async function SwarmPage() {
-  const { supabase, userId, profile: me } = await requireProfile("/roj");
+  const { supabase, userId, profile: me } = await requireProfile("/swarm");
   const { t, locale } = await getDictionary();
   const firstName = me.full_name.split(" ")[0] || "";
 
@@ -107,7 +107,7 @@ export default async function SwarmPage() {
 
   const action = (s: Row, dark = false) =>
     s.is_member && s.group_id ? (
-      <Link href={`/grupy/${s.group_id}`} className={dark ? "btn-honey min-h-12 px-5" : "btn-outline shrink-0"}>
+      <Link href={`/groups/${s.group_id}`} className={dark ? "btn-honey min-h-12 px-5" : "btn-outline shrink-0"}>
         {t.common.joined} <ArrowRight size={16} />
       </Link>
     ) : (
@@ -151,7 +151,7 @@ export default async function SwarmPage() {
     );
 
   const discoverCard = (
-    <Link href="/grupy" className="panel flex items-center gap-3.5 p-4 hover:border-ink">
+    <Link href="/groups" className="panel flex items-center gap-3.5 p-4 hover:border-ink">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ink text-honey">
         <Compass size={22} />
       </span>
@@ -173,7 +173,7 @@ export default async function SwarmPage() {
       {discoverCard}
 
       {myStage === "been" && !(me.helps_departure && me.checks_housing) && (
-        <Link href="/profil" className="block rounded-[26px] bg-ink p-5 text-cream">
+        <Link href="/profile" className="block rounded-[26px] bg-ink p-5 text-cream">
           <p className="display text-xl">👑 {t.swarm.helpTitle}</p>
           <p className="mt-1 text-sm text-mist">{t.swarm.helpLead}</p>
           <span className="btn-honey mt-4 min-h-11">
@@ -186,7 +186,7 @@ export default async function SwarmPage() {
         <div className="honeycomb rounded-[28px] bg-honey p-6">
           <h2 className="display text-2xl">{t.swarm.noExchangeTitle}</h2>
           <p className="mt-2 max-w-md">{t.swarm.noExchangeLead}</p>
-          <Link href="/profil" className="btn-primary mt-5">
+          <Link href="/profile" className="btn-primary mt-5">
             {t.swarm.noExchangeCta} <ArrowRight size={18} />
           </Link>
         </div>
@@ -228,7 +228,8 @@ export default async function SwarmPage() {
         </EmptyState>
       )}
 
-      {sections.map(({ x, groups: ordered }) => {
+      {/* Zakończone wymiany nie dostają już propozycji grup — do starych grup wchodzi się przez Czaty */}
+      {upcoming.map(({ x, groups: ordered }) => {
         const groups = ordered.filter((s) => s !== best);
         const shown = groups.slice(0, VISIBLE_PER_EXCHANGE);
         const more = groups.slice(VISIBLE_PER_EXCHANGE);
@@ -304,7 +305,7 @@ export default async function SwarmPage() {
         </section>
       )}
 
-      <Link href="/ludzie" className="flex min-h-12 items-center justify-center gap-2 text-sm font-semibold underline">
+      <Link href="/people" className="flex min-h-12 items-center justify-center gap-2 text-sm font-semibold underline">
         {t.swarm.browsePeople}
       </Link>
     </div>

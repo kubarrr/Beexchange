@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = (searchParams.get("type") ?? "email") as EmailOtpType;
-  const next = searchParams.get("next") ?? "/roj";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/roj";
+  const next = searchParams.get("next") ?? "/swarm";
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/swarm";
 
   if (!tokenHash) return NextResponse.redirect(`${origin}/login?error=missing_token`);
 

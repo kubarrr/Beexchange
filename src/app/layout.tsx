@@ -36,10 +36,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <footer className={`border-t border-line py-6 text-center text-xs text-muted ${userId ? "hidden md:block" : ""}`}>
           <p>{t.footer.made}</p>
           <p className="mt-2 flex justify-center gap-4">
-            <Link href="/regulamin" className="hover:text-ink">
+            <Link href="/terms" className="hover:text-ink">
               {t.footer.terms}
             </Link>
-            <Link href="/prywatnosc" className="hover:text-ink">
+            <Link href="/privacy" className="hover:text-ink">
               {t.footer.privacy}
             </Link>
           </p>

@@ -524,33 +524,33 @@ async function page(bot, path, expect) {
   const { data: milan } = await zuza.db.from("place_photos").select("url, author, license, source_url").eq("country_code", "IT").eq("city", "Milan").maybeSingle();
   check("Zdjęcie Mediolanu z Commons: wolna licencja, autor i link do źródła", !!milan && /^(CC0|Public domain|CC BY)/i.test(milan.license) && !!milan.author && milan.source_url.startsWith("https://commons.wikimedia.org/"), JSON.stringify(milan));
 }
-await page(zuza, "/roj", ["Polacy · Bocconi", "Bot Giulia", "Fot."]);
-await page(giulia, "/roj", ["Przyjezdni u Ciebie", "Wszyscy · Bocconi"]);
-await page(obcy, "/roj");
-await page(zuza, "/ludzie", ["Bot Kasia"]);
-await page(zuza, `/ludzie?seg=going&hu=${SGH.id}`, ["Bot Kasia"]);
-await page(zuza, "/ludzie?ex=all&cc=IT&city=Milan", ["Bot Michał"]);
-await page(kasia, "/roj", ["Bocconi", "Lizbona"]);
-await page(zuza, `/ludzie?ex=all&hu=${UW.id}&field=ekonomicznych`, ["Bot Kasia"]);
+await page(zuza, "/swarm", ["Polacy · Bocconi", "Bot Giulia", "Fot."]);
+await page(giulia, "/swarm", ["Przyjezdni u Ciebie", "Wszyscy · Bocconi"]);
+await page(obcy, "/swarm");
+await page(zuza, "/people", ["Bot Kasia"]);
+await page(zuza, `/people?seg=going&hu=${SGH.id}`, ["Bot Kasia"]);
+await page(zuza, "/people?ex=all&cc=IT&city=Milan", ["Bot Michał"]);
+await page(kasia, "/swarm", ["Bocconi", "Lizbona"]);
+await page(zuza, `/people?ex=all&hu=${UW.id}&field=ekonomicznych`, ["Bot Kasia"]);
 await page(zuza, `/u/${kasia.id}`, ["Bot Kasia"]);
-await page(zuza, "/mieszkania", ["Mediolan", "Pokój testowy Bot Zuza"]);
-await page(zuza, "/mieszkania?cc=IT&city=Milan&tab=flatmates", ["Bot Adam"]);
-await page(zuza, "/mieszkania?cc=IT&city=Milan&tab=check", ["Bot Giulia", "Moje prośby o sprawdzenie"]);
-await page(zuza, "/mieszkania/nowy", ["Pokój do przejęcia"]);
-await page(giulia, "/czaty", ["Prośby o sprawdzenie mieszkania"]);
-await page(zuza, `/grupy/${gid}`, ["Hej, szukamy razem mieszkania?"]);
-await page(obcy, `/grupy/${gid}`);
-await page(zuza, "/wydarzenia", ["Mediolan", "Inne miasto", "Online Q"]);
-await page(zuza, "/wydarzenia?cc=PL&city=Warsaw", ["Zjazd testowy absolwentów"]);
-await page(zuza, "/wydarzenia?tab=online");
-await page(zuza, "/wydarzenia/nowe");
-await page(obcy, "/grupy");
-await page(obcy, "/grupy?tab=city&cc=ES&city=Madrid&sem=2027S", ["Utwórz grupę i dołącz"]);
-await page(obcy, `/grupy/${gid}`, ["Dołącz jako gość"]);
-await page(zuza, "/czaty", ["Bot Kasia"]);
-await page(kasia, "/czaty");
-await page(zuza, `/wiadomosci/${conv}`, ["Chętnie pomogę z Bocconi"]);
-await page(zuza, "/profil", ["Bot Zuza"]);
+await page(zuza, "/housing", ["Mediolan", "Pokój testowy Bot Zuza"]);
+await page(zuza, "/housing?cc=IT&city=Milan&tab=flatmates", ["Bot Adam"]);
+await page(zuza, "/housing?cc=IT&city=Milan&tab=check", ["Bot Giulia", "Moje prośby o sprawdzenie"]);
+await page(zuza, "/housing/new", ["Pokój do przejęcia"]);
+await page(giulia, "/chats", ["Prośby o sprawdzenie mieszkania"]);
+await page(zuza, `/groups/${gid}`, ["Hej, szukamy razem mieszkania?"]);
+await page(obcy, `/groups/${gid}`);
+await page(zuza, "/events", ["Mediolan", "Szukaj miasta", "Online Q"]);
+await page(zuza, "/events?cc=PL&city=Warsaw", ["Zjazd testowy absolwentów"]);
+await page(zuza, "/events?tab=online");
+await page(zuza, "/events/new");
+await page(obcy, "/groups");
+await page(obcy, "/groups?tab=city&cc=ES&city=Madrid&sem=2027S", ["Utwórz grupę i dołącz"]);
+await page(obcy, `/groups/${gid}`, ["Dołącz jako gość"]);
+await page(zuza, "/chats", ["Bot Kasia"]);
+await page(kasia, "/chats");
+await page(zuza, `/messages/${conv}`, ["Chętnie pomogę z Bocconi"]);
+await page(zuza, "/profile", ["Bot Zuza"]);
 await page(zuza, "/onboarding");
 {
   const res = await fetch(`${APP}/api/institutions?q=bocconi`, { headers: { cookie: zuza.cookie } });
@@ -558,7 +558,7 @@ await page(zuza, "/onboarding");
   check("/api/institutions?q=bocconi (wyszukiwarka w aplikacji)", json[0]?.name === "Bocconi University", `HTTP ${res.status}`);
 }
 {
-  const res = await fetch(`${APP}/roj`, { redirect: "manual" });
+  const res = await fetch(`${APP}/swarm`, { redirect: "manual" });
   check("Niezalogowany jest przekierowany do logowania", [302, 303, 307].includes(res.status) && (res.headers.get("location") ?? "").includes("/login"), `HTTP ${res.status}`);
 }
 
@@ -589,15 +589,15 @@ section("Wersja angielska (czy nic nie zostało po polsku)");
     const leaks = polish.filter((x) => (x.includes(" ") || x.length >= 9) && new RegExp(`(?<!\\p{L})${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\p{L})`, "u").test(text));
     check(`EN ${path}`, res.status === 200 && html.includes('lang="en"') && leaks.length === 0, res.status !== 200 ? `HTTP ${res.status}` : leaks.slice(0, 4).join(" | ") || "brak lang=en");
   };
-  for (const path of ["/", "/login", "/regulamin", "/prywatnosc"]) await pageEn(null, path);
-  for (const path of ["/roj", "/ludzie", "/ludzie?seg=been&buddy=1", "/grupy", "/grupy?tab=city&cc=ES&city=Madrid&sem=2027S", "/wydarzenia", "/wydarzenia/nowe", "/mieszkania", "/mieszkania?cc=IT&city=Milan&tab=check", "/mieszkania/nowy", "/czaty", "/profil", "/onboarding"])
+  for (const path of ["/", "/login", "/terms", "/privacy"]) await pageEn(null, path);
+  for (const path of ["/swarm", "/people", "/people?seg=been&buddy=1", "/groups", "/groups?tab=city&cc=ES&city=Madrid&sem=2027S", "/events", "/events/new", "/housing", "/housing?cc=IT&city=Milan&tab=check", "/housing/new", "/chats", "/profile", "/onboarding"])
     await pageEn(zuza, path);
   await pageEn(zuza, `/u/${kasia.id}`);
-  await pageEn(zuza, `/grupy/${gid}`);
-  await pageEn(obcy, `/grupy/${gid}`);
-  await pageEn(zuza, `/wiadomosci/${conv}`);
-  await pageEn(kasia, "/roj");
-  await pageEn(kasia, "/czaty");
+  await pageEn(zuza, `/groups/${gid}`);
+  await pageEn(obcy, `/groups/${gid}`);
+  await pageEn(zuza, `/messages/${conv}`);
+  await pageEn(kasia, "/swarm");
+  await pageEn(kasia, "/chats");
 }
 
 // ---------- podsumowanie ----------

@@ -14,3 +14,13 @@ export function cityName(city: string | null | undefined, locale: string) {
 export function cityNamePl(city: string | null | undefined) {
   return city ? CITY_PL[city.toLowerCase()] ?? null : null;
 }
+
+const fold = (s: string) => s.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+// Do wyszukiwarki miast: wpisany tekst plus angielskie nazwy miast, których polska nazwa pasuje („Mediol” → „milan”)
+export function cityQueryCandidates(q: string) {
+  const f = fold(q.trim());
+  const out = new Set<string>([q.trim()]);
+  for (const [en, pl] of Object.entries(CITY_PL)) if (fold(pl).startsWith(f)) out.add(en);
+  return [...out].filter((x) => x.length >= 2).slice(0, 8);
+}

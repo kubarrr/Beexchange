@@ -38,7 +38,7 @@ function toUrl(f: PeopleQuery) {
   if (f.housing) sp.set("housing", "1");
   if (f.buddy) sp.set("buddy", "1");
   if (f.open) sp.set("open", "1");
-  return `/ludzie?${sp.toString()}`;
+  return `/people?${sp.toString()}`;
 }
 
 // Szybki wybór jednej z moich uczelni (macierzystych albo wymiany)

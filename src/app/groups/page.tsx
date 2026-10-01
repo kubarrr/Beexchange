@@ -29,9 +29,9 @@ type Row = {
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 
-export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">) {
+export default async function DiscoverPage({ searchParams }: PageProps<"/groups">) {
   const sp = await searchParams;
-  const { supabase } = await requireProfile("/grupy");
+  const { supabase } = await requireProfile("/groups");
   const { t, locale } = await getDictionary();
 
   const tab = (["semester", "city"].includes(str(sp.tab)) ? str(sp.tab) : "all") as DiscoverQuery["tab"];
@@ -125,7 +125,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
                   </p>
                 </div>
                 {g.is_member ? (
-                  <Link href={`/grupy/${g.id}`} className="btn-outline shrink-0">
+                  <Link href={`/groups/${g.id}`} className="btn-outline shrink-0">
                     {t.discover.open} <ArrowRight size={16} />
                   </Link>
                 ) : (

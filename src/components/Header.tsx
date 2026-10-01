@@ -15,7 +15,7 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-cream/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-2.5">
-        <Link href={userId ? "/roj" : "/"} aria-label="BeeXchange">
+        <Link href={userId ? "/swarm" : "/"} aria-label="BeeXchange">
           <Logo />
         </Link>
         {userId && <DesktopNav locale={locale} unread={unread} />}
@@ -34,7 +34,7 @@ export async function Header() {
             ))}
           </form>
           {userId ? (
-            <Link href="/profil" aria-label={t.nav.profile} className="rounded-full ring-2 ring-transparent hover:ring-honey">
+            <Link href="/profile" aria-label={t.nav.profile} className="rounded-full ring-2 ring-transparent hover:ring-honey">
               <Avatar name={profile?.full_name ?? ""} url={profile?.avatar_url} size={36} />
             </Link>
           ) : (

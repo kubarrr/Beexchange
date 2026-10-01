@@ -46,8 +46,8 @@ export function personBadges(p: Person, viewerHomeIds: number[] = []) {
 export function StageChip({ stage, t, tone = "light" }: { stage: Stage; t: Dictionary; tone?: "light" | "dark" }) {
   const tones: Record<Stage, string> =
     tone === "dark"
-      ? { searching: "bg-cream text-ink", going: "bg-honey text-ink", abroad: "bg-honey text-ink", been: "bg-honey text-ink" }
-      : { searching: "border border-line bg-white", going: "bg-honey", abroad: "bg-ink text-honey", been: "bg-sand" };
+      ? { searching: "bg-cream text-ink", going: "bg-cream text-ink", abroad: "bg-honey text-ink", been: "bg-cream text-ink" }
+      : { searching: "border border-line bg-white", going: "bg-sand", abroad: "bg-honey text-ink", been: "bg-ink text-honey" };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${tones[stage]}`}>
       <span aria-hidden="true">{STAGE_EMOJI[stage]}</span>
@@ -71,14 +71,18 @@ export function RouteLine({ p, t, className = "", maxExchanges = 1 }: { p: Perso
   const shown = ex.slice(0, maxExchanges);
   return (
     <div className={`space-y-0.5 text-[13px] leading-snug ${className}`}>
-      {home && <p className="font-semibold">{institutionName(home)}</p>}
+      {home && (
+        <p className="flex min-w-0 items-start gap-1.5 font-bold text-ink">
+          <Flag code={home.country_code} className="mt-[3px] h-3 w-[18px]" />
+          <span className="min-w-0">{institutionName(home)}</span>
+        </p>
+      )}
       {shown.map((x) => (
-        <p key={`${x.institution.id}:${x.semester}`} className="flex min-w-0 items-start gap-1.5">
-          <ArrowRight size={14} strokeWidth={2.5} className="mt-[3px] shrink-0" aria-hidden="true" />
+        <p key={`${x.institution.id}:${x.semester}`} className="flex min-w-0 items-start gap-1.5 font-bold text-honey-700">
+          <ArrowRight size={14} strokeWidth={2.75} className="mt-[3px] shrink-0" aria-hidden="true" />
           <Flag code={x.institution.country_code} className="mt-[3px] h-3 w-[18px]" />
           <span className="min-w-0">
-            {institutionName(x.institution)}
-            <span className="opacity-70"> · {semesterLabel(x.semester, t)}</span>
+            {institutionName(x.institution)} · {semesterLabel(x.semester, t)}
           </span>
         </p>
       ))}
@@ -121,7 +125,7 @@ export function PersonCard({
           {b.buddy && <EmojiFlag emoji={BUDDY_EMOJI} label={t.profile.buddy} />}
           {b.helper && <EmojiFlag emoji={HELPER_EMOJI} label={t.profile.helper} />}
         </div>
-        <RouteLine p={p} locale={locale} t={t} className="text-muted [&_p:first-child]:text-ink" />
+        <RouteLine p={p} locale={locale} t={t} className="text-muted" />
         {footer && <div className="flex justify-end pt-1.5">{footer}</div>}
       </div>
       {action && <div className="shrink-0 self-center">{action}</div>}

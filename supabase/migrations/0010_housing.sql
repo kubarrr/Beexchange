@@ -1,6 +1,6 @@
 -- BeeXchange 0010: zakładka Mieszkania (etap 1, bez płatności)
 -- • pokoje do przejęcia — wystawia tylko ktoś, kto ma w tym mieście wymianę albo uczelnię macierzystą
--- • 🔎 sprawdzenie mieszkania na miejscu — prośba do osoby, która jest w tym mieście i się zgłosiła
+-- • 🕵️ sprawdzenie mieszkania na miejscu — prośba do osoby, która jest w tym mieście i się zgłosiła
 -- Uruchom w Supabase → SQL Editor po 0009_person_types.sql. Plik można uruchomić ponownie.
 
 -- Zgoda na sprawdzanie mieszkań na miejscu (widoczna w zakładce Mieszkania)

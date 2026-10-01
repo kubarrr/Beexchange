@@ -210,7 +210,7 @@ const jar = new Map();
 const ssr = createServerClient(URL_, PUB, { cookies: { getAll: () => [...jar].map(([name, value]) => ({ name, value })), setAll: (l) => l.forEach(({ name, value }) => jar.set(name, value)) } });
 await ssr.auth.signInWithPassword({ email: probe.email, password: probe.password });
 const cookie = [...jar].map(([n, v]) => `${n}=${v}`).join("; ");
-for (const path of ["/roj", "/ludzie", "/grupy", "/czaty"]) {
+for (const path of ["/swarm", "/people", "/groups", "/chats"]) {
   await measure(`Strona ${path} (serwer deweloperski)`, async () => {
     const res = await fetch(APP + path, { headers: { cookie, "accept-language": "pl" } });
     await res.text();

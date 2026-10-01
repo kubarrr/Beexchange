@@ -31,7 +31,7 @@ const STUDY = /^(bachelor|engineer|master|long|phd|graduate)(:\d)?$/;
 const LANG = /^[a-z]{2}:(native|C2|C1|B2|B1|A2|A1)$/;
 
 export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { supabase, userId } = await requireUser("/profil");
+  const { supabase, userId } = await requireUser("/profile");
 
   const homes = (input.homes ?? [])
     .filter((h) => Number.isInteger(h.institution_id))
@@ -104,7 +104,7 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
 }
 
 export async function addInstitution(input: { name: string; country_code: string; city: string; website: string }): Promise<Institution> {
-  const { supabase, userId } = await requireUser("/profil");
+  const { supabase, userId } = await requireUser("/profile");
   const name = clip(input.name, 200);
   const cc = clip(input.country_code, 2).toUpperCase();
   if (name.length < 4 || !/^[A-Z]{2}$/.test(cc)) throw new Error("invalid institution");
@@ -132,19 +132,19 @@ export async function joinGroup(formData: FormData) {
   const kind = String(formData.get("kind"));
   const exchangeId = Number(formData.get("exchange_id")) || null;
   const homeId = Number(formData.get("home_id")) || null;
-  const { supabase } = await requireUser("/roj");
+  const { supabase } = await requireUser("/swarm");
   const { data, error } = await supabase.rpc("join_group", { p_kind: kind, p_exchange_id: exchangeId, p_home_id: homeId });
   if (error) throw new Error(error.message);
-  revalidatePath("/roj");
-  redirect(`/grupy/${data}`);
+  revalidatePath("/swarm");
+  redirect(`/groups/${data}`);
 }
 
 export async function leaveGroup(formData: FormData) {
   const groupId = Number(formData.get("group_id"));
-  const { supabase, userId } = await requireUser("/roj");
+  const { supabase, userId } = await requireUser("/swarm");
   await supabase.from("group_members").delete().eq("group_id", groupId).eq("user_id", userId);
-  revalidatePath("/roj");
-  redirect("/roj");
+  revalidatePath("/swarm");
+  redirect("/swarm");
 }
 
 export async function requestBuddy(formData: FormData) {
@@ -152,23 +152,23 @@ export async function requestBuddy(formData: FormData) {
   const { supabase, userId } = await requireUser(`/u/${to}`);
   await supabase.from("buddy_requests").upsert({ from_user: userId, to_user: to, status: "pending" }, { onConflict: "from_user,to_user", ignoreDuplicates: true });
   revalidatePath(`/u/${to}`);
-  revalidatePath("/roj");
+  revalidatePath("/swarm");
 }
 
 export async function answerBuddy(formData: FormData) {
   const id = Number(formData.get("id"));
   const accept = formData.get("accept") === "1";
-  const { supabase } = await requireUser("/czaty");
+  const { supabase } = await requireUser("/chats");
   const { data: req } = await supabase.from("buddy_requests").update({ status: accept ? "accepted" : "declined" }).eq("id", id).select("from_user").single();
-  revalidatePath("/czaty");
+  revalidatePath("/chats");
   if (accept && req) {
     const { data: conv } = await supabase.rpc("get_or_create_conversation", { other_user: req.from_user });
-    if (conv) redirect(`/wiadomosci/${conv}`);
+    if (conv) redirect(`/messages/${conv}`);
   }
 }
 
 export async function createEvent(formData: FormData) {
-  const { supabase, userId } = await requireUser("/wydarzenia/nowe");
+  const { supabase, userId } = await requireUser("/events/new");
   const online = formData.get("is_online") === "on";
   const startsAt = new Date(String(formData.get("starts_at_iso") ?? ""));
   if (Number.isNaN(startsAt.getTime())) throw new Error("invalid date");
@@ -191,40 +191,40 @@ export async function createEvent(formData: FormData) {
     created_by: userId,
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/wydarzenia");
-  redirect("/wydarzenia");
+  revalidatePath("/events");
+  redirect("/events");
 }
 
 export async function deleteEvent(formData: FormData) {
-  const { supabase, userId } = await requireUser("/wydarzenia");
+  const { supabase, userId } = await requireUser("/events");
   const { data: ev } = await supabase.from("events").delete().eq("id", Number(formData.get("id"))).eq("created_by", userId).select("cover_url").maybeSingle();
   const path = ev?.cover_url?.split("/storage/v1/object/public/events/")[1];
   if (path) await supabase.storage.from("events").remove([path]);
-  revalidatePath("/wydarzenia");
+  revalidatePath("/events");
 }
 
 export async function toggleAttend(formData: FormData) {
   const id = Number(formData.get("id"));
-  const { supabase, userId } = await requireUser("/wydarzenia");
+  const { supabase, userId } = await requireUser("/events");
   if (formData.get("going") === "1") {
     await supabase.from("event_attendees").delete().eq("event_id", id).eq("user_id", userId);
   } else {
     await supabase.from("event_attendees").insert({ event_id: id, user_id: userId });
   }
-  revalidatePath("/wydarzenia");
+  revalidatePath("/events");
 }
 
 export async function joinGroupById(formData: FormData) {
   const groupId = Number(formData.get("group_id"));
-  const { supabase } = await requireUser(`/grupy/${groupId}`);
+  const { supabase } = await requireUser(`/groups/${groupId}`);
   const { error } = await supabase.rpc("join_group_by_id", { p_group_id: groupId });
   if (error) throw new Error(error.message);
-  revalidatePath("/roj");
-  redirect(`/grupy/${groupId}`);
+  revalidatePath("/swarm");
+  redirect(`/groups/${groupId}`);
 }
 
 export async function createGroup(formData: FormData) {
-  const { supabase } = await requireUser("/grupy");
+  const { supabase } = await requireUser("/groups");
   const { data, error } = await supabase.rpc("create_group", {
     p_kind: String(formData.get("kind")),
     p_sem: String(formData.get("semester")),
@@ -233,13 +233,13 @@ export async function createGroup(formData: FormData) {
     p_city: String(formData.get("city") ?? "") || null,
   });
   if (error) throw new Error(error.message);
-  revalidatePath("/grupy");
-  redirect(`/grupy/${data}`);
+  revalidatePath("/groups");
+  redirect(`/groups/${data}`);
 }
 
 // RODO: usunięcie konta ze wszystkimi danymi
 export async function deleteAccount(formData: FormData) {
-  const { supabase, userId } = await requireUser("/profil");
+  const { supabase, userId } = await requireUser("/profile");
   const word = String(formData.get("confirm") ?? "").trim().toUpperCase();
   if (word !== "USUŃ" && word !== "DELETE") return;
 
@@ -271,7 +271,7 @@ export type RoomInput = {
 };
 
 export async function createRoom(input: RoomInput): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { supabase, userId } = await requireUser("/mieszkania/nowy");
+  const { supabase, userId } = await requireUser("/housing/new");
   const day = /^\d{4}-\d{2}-\d{2}$/;
   if (!day.test(input.available_from ?? "")) return { ok: false, error: "date" };
   // Zdjęcia tylko z własnego folderu w naszym Storage
@@ -291,22 +291,22 @@ export async function createRoom(input: RoomInput): Promise<{ ok: true } | { ok:
     photos: (input.photos ?? []).filter((u) => typeof u === "string" && u.startsWith(prefix)).slice(0, 4),
   });
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/mieszkania");
+  revalidatePath("/housing");
   return { ok: true };
 }
 
 export async function setRoomTaken(formData: FormData) {
-  const { supabase, userId } = await requireUser("/mieszkania");
+  const { supabase, userId } = await requireUser("/housing");
   await supabase.from("rooms").update({ taken: formData.get("taken") === "1" }).eq("id", Number(formData.get("id"))).eq("author_id", userId);
-  revalidatePath("/mieszkania");
+  revalidatePath("/housing");
 }
 
 export async function deleteRoom(formData: FormData) {
-  const { supabase, userId } = await requireUser("/mieszkania");
+  const { supabase, userId } = await requireUser("/housing");
   const { data: room } = await supabase.from("rooms").delete().eq("id", Number(formData.get("id"))).eq("author_id", userId).select("photos").maybeSingle();
   const paths = (room?.photos ?? []).map((u: string) => u.split("/storage/v1/object/public/rooms/")[1]).filter(Boolean);
   if (paths.length) await supabase.storage.from("rooms").remove(paths);
-  revalidatePath("/mieszkania");
+  revalidatePath("/housing");
 }
 
 // Prośba o sprawdzenie: zapis prośby + wiadomość ze szczegółami w rozmowie ze sprawdzającym
@@ -315,7 +315,7 @@ export async function requestCheck(formData: FormData) {
   const cc = clip(formData.get("country_code"), 2).toUpperCase();
   const city = clip(formData.get("city"), 80);
   const details = clip(formData.get("details"), 2000);
-  const { supabase, userId } = await requireUser("/mieszkania");
+  const { supabase, userId } = await requireUser("/housing");
   if (details.length < 5) return;
   const { error } = await supabase.from("check_requests").insert({ requester_id: userId, checker_id: checker, country_code: cc, city, details });
   if (error) throw new Error(error.message);
@@ -324,19 +324,19 @@ export async function requestCheck(formData: FormData) {
     const t = dictionaries[await getLocale()];
     await supabase.from("messages").insert({ conversation_id: conv, sender_id: userId, body: t.housing.checkMessage(city, details) });
   }
-  revalidatePath("/mieszkania");
+  revalidatePath("/housing");
 }
 
 export async function answerCheck(formData: FormData) {
   const id = Number(formData.get("id"));
   const status = String(formData.get("status"));
   if (!["accepted", "declined", "done"].includes(status)) return;
-  const { supabase } = await requireUser("/czaty");
+  const { supabase } = await requireUser("/chats");
   const { data: req } = await supabase.from("check_requests").update({ status }).eq("id", id).select("requester_id").single();
-  revalidatePath("/czaty");
-  revalidatePath("/mieszkania");
+  revalidatePath("/chats");
+  revalidatePath("/housing");
   if (status === "accepted" && req) {
     const { data: conv } = await supabase.rpc("get_or_create_conversation", { other_user: req.requester_id });
-    if (conv) redirect(`/wiadomosci/${conv}`);
+    if (conv) redirect(`/messages/${conv}`);
   }
 }

@@ -87,7 +87,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
           </svg>
         )}
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink/85 to-transparent" />
-        <Link href="/ludzie" aria-label={t.common.back} className="absolute top-4 left-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-cream">
+        <Link href="/people" aria-label={t.common.back} className="absolute top-4 left-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-cream">
           <ArrowLeft size={20} strokeWidth={2.5} />
         </Link>
         <div className="absolute inset-x-5 bottom-4 space-y-2 text-cream">
@@ -116,7 +116,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
 
         <section className="panel space-y-1 p-4">
           {homes.map((h) => (
-            <Link key={h.institution_id} href={`/ludzie?ex=all&hu=${h.institution_id}`} className="flex items-center gap-3 rounded-2xl py-1.5 hover:bg-cream">
+            <Link key={h.institution_id} href={`/people?ex=all&hu=${h.institution_id}`} className="flex items-center gap-3 rounded-2xl py-1.5 hover:bg-cream">
               <InstBadge inst={h.institution} size={44} />
               <span className="min-w-0 flex-1">
                 <span className="block leading-tight font-bold">{institutionName(h.institution)}</span>
@@ -132,7 +132,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
             </div>
           )}
           {exchanges.map((x) => (
-            <Link key={x.id} href={`/ludzie?ex=${x.institution_id}`} className="flex items-center gap-3 rounded-2xl py-1.5 hover:bg-cream">
+            <Link key={x.id} href={`/people?ex=${x.institution_id}`} className="flex items-center gap-3 rounded-2xl py-1.5 hover:bg-cream">
               <InstBadge inst={x.institution} size={44} tone="honey" />
               <span className="min-w-0 flex-1">
                 <span className="block leading-tight font-bold">{institutionName(x.institution)}</span>
@@ -195,7 +195,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
         )}
 
         {isMe ? (
-          <Link href="/profil" className="btn-primary w-full">
+          <Link href="/profile" className="btn-primary w-full">
             {t.profile.title}
           </Link>
         ) : (

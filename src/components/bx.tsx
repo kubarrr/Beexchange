@@ -75,7 +75,7 @@ export function Avatar({ name, url, size = 44, className = "" }: { name: string;
 }
 
 export function StatusBadge({ status, t }: { status: Stage; t: Dictionary }) {
-  const tones: Record<Stage, string> = { searching: "bg-cream text-ink border border-line", going: "bg-honey text-ink", abroad: "bg-ink text-honey", been: "bg-sand text-ink" };
+  const tones: Record<Stage, string> = { searching: "bg-cream text-ink border border-line", going: "bg-sand text-ink", abroad: "bg-honey text-ink", been: "bg-ink text-honey" };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap ${tones[status]}`}>
       <span aria-hidden="true">{STAGE_EMOJI[status]}</span>

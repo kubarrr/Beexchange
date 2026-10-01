@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Globe, MapPin, MessageSquare, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { CalendarDays, MapPin, MessageSquare, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { startConversation } from "@/app/actions";
 import { deleteRoom, setRoomTaken } from "@/app/actions/bx";
 import { EmptyState, Flag, PageTitle } from "@/components/bx";
@@ -8,12 +8,11 @@ import { PhotoBanner, loadPlacePhotos, placeKey } from "@/components/PlacePhoto"
 import { ReportButton } from "@/components/ReportButton";
 import { requireProfile } from "@/lib/auth";
 import { cityName } from "@/lib/cities";
-import { ALL_COUNTRY_CODES } from "@/lib/countries";
-import { countryName } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
-import { cityKey, formatPrice, myCities } from "@/lib/places";
-import { CheckRequest, CityPicker } from "./HousingClient";
+import { formatPrice, myCities } from "@/lib/places";
+import { CheckRequest } from "./HousingClient";
+import { CitySearch } from "@/components/CitySearch";
 
 export const generateMetadata = localizedTitle((t) => t.nav.housing);
 
@@ -38,21 +37,19 @@ type Room = {
 const TABS = ["rooms", "flatmates", "check"] as const;
 type Tab = (typeof TABS)[number];
 
-export default async function HousingPage({ searchParams }: PageProps<"/mieszkania">) {
+export default async function HousingPage({ searchParams }: PageProps<"/housing">) {
   const sp = await searchParams;
-  const { supabase, userId, profile: me } = await requireProfile("/mieszkania");
+  const { supabase, userId, profile: me } = await requireProfile("/housing");
   const { t, locale } = await getDictionary();
 
-  const mine = myCities(me);
-  const first = [...mine.values()][0];
+  const mine = [...myCities(me).values()];
   const qCc = typeof sp.cc === "string" && /^[A-Z]{2}$/.test(sp.cc) ? sp.cc : "";
   const qCity = typeof sp.city === "string" ? sp.city.slice(0, 80) : "";
-  const other = sp.other === "1" || (!qCity && !first);
-  const cc = qCity ? qCc : other ? "" : first!.cc;
-  const city = qCity || (other ? "" : first!.city);
+  // Domyślnie pierwsze z moich miast (najpierw wymiany trwające i przyszłe)
+  const cc = qCity ? qCc : (mine[0]?.cc ?? "");
+  const city = qCity || mine[0]?.city || "";
   const tab: Tab = TABS.includes(sp.tab as Tab) ? (sp.tab as Tab) : "rooms";
-  const chosen = city && !other ? cityKey(cc, city) : "";
-  const here = (path: string) => `/mieszkania?${new URLSearchParams({ ...(other ? { other: "1" } : {}), cc, city, tab: path }).toString()}`;
+  const here = (path: string) => `/housing?${new URLSearchParams({ cc, city, tab: path }).toString()}`;
 
   const [{ data: roomRows }, { data: flatRows }, { data: checkerRows }, { data: myReqs }] = city
     ? await Promise.all([
@@ -80,7 +77,6 @@ export default async function HousingPage({ searchParams }: PageProps<"/mieszkan
 
   const dateFmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" });
   const fmt = (d: string) => dateFmt.format(new Date(`${d}T12:00:00`));
-  const countries = ALL_COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) })).sort((a, b) => a.n.localeCompare(b.n, locale));
   const count = { rooms: rooms.filter((r) => !r.taken).length, flatmates: flatmates.length, check: checkers.length };
 
   const writeButton = (id: string) => (
@@ -98,24 +94,13 @@ export default async function HousingPage({ searchParams }: PageProps<"/mieszkan
         title={t.housing.title}
         lead={t.housing.lead}
         action={
-          <Link href={`/mieszkania/nowy${city ? `?cc=${cc}&city=${encodeURIComponent(city)}` : ""}`} className="btn-honey shrink-0 bg-ink text-honey hover:bg-black">
+          <Link href={`/housing/new${city ? `?cc=${cc}&city=${encodeURIComponent(city)}` : ""}`} className="btn-honey shrink-0 bg-ink text-honey hover:bg-black">
             <Plus size={16} strokeWidth={3} /> {t.housing.addRoom}
           </Link>
         }
       />
 
-      <div className="flex flex-wrap gap-2">
-        {[...mine.entries()].map(([key, c]) => (
-          <Link key={key} href={`/mieszkania?cc=${c.cc}&city=${encodeURIComponent(c.city)}&tab=${tab}`} className={`chip gap-1.5 ${chosen === key ? "chip-on" : ""}`}>
-            <Flag code={c.cc} className="h-3 w-[18px]" />
-            {cityName(c.city, locale)}
-          </Link>
-        ))}
-        <Link href={`/mieszkania?other=1&tab=${tab}`} className={`chip ${other ? "chip-on" : ""}`}>
-          <Globe size={14} /> {t.housing.otherCity}
-        </Link>
-      </div>
-      {other && <CityPicker locale={locale} cc={cc} city={city} tab={tab} countries={countries} />}
+      <CitySearch locale={locale} current={city ? { cc, city } : null} mine={mine} basePath="/housing" extra={`tab=${tab}`} />
 
       <details className="group rounded-[20px] border-2 border-honey bg-white p-4">
         <summary className="flex cursor-pointer list-none items-center gap-2 font-bold [&::-webkit-details-marker]:hidden">
@@ -218,7 +203,7 @@ export default async function HousingPage({ searchParams }: PageProps<"/mieszkan
             <div className="space-y-3">
               <p className="text-sm text-muted">{t.housing.flatmatesLead}</p>
               {!meLooking && (
-                <Link href="/profil" className="block rounded-2xl bg-sand px-4 py-3 text-sm font-semibold hover:bg-honey">
+                <Link href="/profile" className="block rounded-2xl bg-sand px-4 py-3 text-sm font-semibold hover:bg-honey">
                   {t.housing.meToo}
                 </Link>
               )}

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { Globe, MapPin, Plus, Trash2 } from "lucide-react";
 import { deleteEvent, toggleAttend } from "@/app/actions/bx";
 import { EmptyState, Flag, PageTitle } from "@/components/bx";
+import { CitySearch } from "@/components/CitySearch";
 import { LocalDate } from "@/components/LocalDate";
 import { PhotoBanner, loadPlacePhotos, placeKey as photoKey } from "@/components/PlacePhoto";
 import { cityName } from "@/lib/cities";
-import { semesterPhase } from "@/lib/domain";
-import { EventFilters } from "./EventFilters";
+import { myCities } from "@/lib/places";
 import { requireProfile } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
@@ -34,28 +34,18 @@ type EventRow = {
 function recentCutoff() {
   return new Date(Date.now() - 3 * 3600 * 1000).toISOString();
 }
-const placeKey = (cc: string | null | undefined, city: string | null | undefined) => `${cc ?? ""}:${(city ?? "").toLowerCase()}`;
 
-export default async function EventsPage({ searchParams }: PageProps<"/wydarzenia">) {
+export default async function EventsPage({ searchParams }: PageProps<"/events">) {
   const sp = await searchParams;
   const qCc = typeof sp.cc === "string" && /^[A-Z]{2}$/.test(sp.cc) ? sp.cc : "";
   const qCity = typeof sp.city === "string" ? sp.city.slice(0, 80) : "";
-  const { supabase, userId, profile: me } = await requireProfile("/wydarzenia");
+  const { supabase, userId, profile: me } = await requireProfile("/events");
 
-  // Moje miasta: najpierw miasta wymian (bieżących i przyszłych), potem uczelni macierzystych
-  const myCities = new Map<string, { cc: string; city: string }>();
-  const ordered = [
-    ...me.exchanges.filter((x) => semesterPhase(x.semester) !== "past").map((x) => x.institution),
-    ...me.homes.map((h) => h.institution),
-    ...me.exchanges.map((x) => x.institution),
-  ];
-  for (const i of ordered) if (i.city) myCities.set(placeKey(i.country_code, i.city), { cc: i.country_code, city: i.city });
-  const first = [...myCities.values()][0];
-
-  // Widok: wybrane miasto, „inne miasto” (kraj → miasto) albo Online Q&A. Domyślnie moje pierwsze miasto.
-  const view: "city" | "other" | "online" = sp.tab === "online" ? "online" : sp.tab === "other" || (!qCity && !first) ? "other" : "city";
-  const cc = view === "city" && !qCity ? first!.cc : qCc;
-  const city = view === "city" && !qCity ? first!.city : qCity;
+  // Moje miasta (najpierw wymiany trwające i przyszłe) — podpowiedzi w wyszukiwarce; domyślnie pierwsze z nich
+  const mine = [...myCities(me).values()];
+  const online = sp.tab === "online";
+  const cc = qCity ? qCc : (mine[0]?.cc ?? "");
+  const city = qCity || mine[0]?.city || "";
   const { t, locale } = await getDictionary();
 
   const { data } = await supabase
@@ -66,18 +56,10 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
     .limit(300);
   const upcoming = (data ?? []) as EventRow[];
 
-  // Miejsca z wydarzeniami (do wyboru „inne miasto”)
-  const places = new Map<string, { cc: string; city: string }>();
-  for (const e of upcoming) if (!e.is_online && e.country_code && e.city) places.set(placeKey(e.country_code, e.city), { cc: e.country_code, city: e.city });
-
-  let events =
-    view === "online"
-      ? upcoming.filter((e) => e.is_online)
-      : upcoming.filter((e) => !e.is_online && (!cc || e.country_code === cc) && (!city || (e.city ?? "").toLowerCase() === city.toLowerCase()));
-  // W „innym mieście” bez wybranego kraju nic nie pokazujemy — wydarzenia są zawsze w konkretnym mieście
-  if (view === "other" && !cc) events = [];
-  events = events.slice(0, 60);
-  const chosen = view === "city" ? placeKey(cc, city) : "";
+  // Wydarzenia są zawsze w konkretnym mieście (albo w zakładce Online Q&A)
+  const events = (
+    online ? upcoming.filter((e) => e.is_online) : city ? upcoming.filter((e) => !e.is_online && e.country_code === cc && (e.city ?? "").toLowerCase() === city.toLowerCase()) : []
+  ).slice(0, 60);
   const photos = await loadPlacePhotos(
     supabase,
     events.filter((e) => !e.is_online && !e.cover_url).map((e) => ({ cc: e.country_code, city: e.city })),
@@ -91,38 +73,30 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
         title={t.events.title}
         lead={t.events.lead}
         action={
-          <Link href="/wydarzenia/nowe" className="btn-honey shrink-0 bg-ink text-honey hover:bg-black">
+          <Link href="/events/new" className="btn-honey shrink-0 bg-ink text-honey hover:bg-black">
             <Plus size={16} strokeWidth={3} /> {t.events.create}
           </Link>
         }
       />
 
-      <div className="flex flex-wrap gap-2">
-        {[...myCities.entries()].map(([key, c]) => (
-          <Link key={key} href={`/wydarzenia?cc=${c.cc}&city=${encodeURIComponent(c.city)}`} className={`chip gap-1.5 ${chosen === key ? "chip-on" : ""}`}>
-            <Flag code={c.cc} className="h-3 w-[18px]" />
-            {cityName(c.city, locale)}
-          </Link>
-        ))}
-        <Link href="/wydarzenia?tab=other" className={`chip ${view === "other" ? "chip-on" : ""}`}>
-          <MapPin size={14} /> {t.events.tabOtherCity}
-        </Link>
-        <Link href="/wydarzenia?tab=online" className={`chip ${view === "online" ? "chip-on" : ""}`}>
-          <Globe size={14} /> {t.events.tabOnline}
+      <div className="flex gap-2">
+        <div className="min-w-0 flex-1">
+          <CitySearch locale={locale} current={!online && city ? { cc, city } : null} mine={mine} basePath="/events" />
+        </div>
+        <Link href={online ? "/events" : "/events?tab=online"} aria-pressed={online} className={`chip min-h-12 shrink-0 ${online ? "chip-on" : ""}`}>
+          <Globe size={15} /> {t.events.tabOnline}
         </Link>
       </div>
-
-      {view === "other" && <EventFilters locale={locale} cc={cc} city={city} places={[...places.values()]} />}
 
       {events.length === 0 && (
         <EmptyState
           action={
-            <Link href="/wydarzenia/nowe" className="btn-primary">
+            <Link href="/events/new" className="btn-primary">
               <Plus size={18} /> {t.events.create}
             </Link>
           }
         >
-          {view === "other" && !cc ? t.events.pickCity : view === "online" ? t.events.emptyOnline : t.events.emptyCity}
+          {online ? t.events.emptyOnline : city ? t.events.emptyCity : t.events.pickCity}
         </EmptyState>
       )}
 

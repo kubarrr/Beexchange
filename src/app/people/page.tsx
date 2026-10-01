@@ -12,9 +12,9 @@ export const generateMetadata = localizedTitle((t) => t.nav.people);
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 
-export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">) {
+export default async function PeoplePage({ searchParams }: PageProps<"/people">) {
   const sp = await searchParams;
-  const { supabase, profile: me } = await requireProfile("/ludzie");
+  const { supabase, profile: me } = await requireProfile("/people");
   const { t, locale } = await getDictionary();
 
   const seg = ((SEGMENTS as readonly string[]).includes(str(sp.seg)) ? str(sp.seg) : "all") as PeopleQuery["seg"];

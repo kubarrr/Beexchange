@@ -34,7 +34,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   };
 
   test("Onboarding krok po kroku ze zdjęciem, pasjami i językami", async () => {
-    await a.goto("/roj");
+    await a.goto("/swarm");
     await expect(a).toHaveURL(/\/onboarding/);
     await a.getByRole("button", { name: "Jestem teraz na wymianie" }).click();
     await a.getByRole("button", { name: "Dalej" }).click();
@@ -74,7 +74,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await shot(a, "03-onboarding-ty");
     await a.getByRole("button", { name: "Pokaż mój rój" }).click();
 
-    await expect(a).toHaveURL(/\/roj/);
+    await expect(a).toHaveURL(/\/swarm/);
     await expect(a.getByText("Najlepsze dopasowanie")).toBeVisible();
     await expect(a.getByRole("heading", { name: /Polacy · Bocconi/ })).toBeVisible();
     await noSideScroll(a);
@@ -89,7 +89,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
 
   test("Grupa i czat na żywo między dwiema osobami", async () => {
     await a.getByRole("button", { name: /Dołącz/ }).first().click();
-    await expect(a).toHaveURL(/\/grupy\/\d+/);
+    await expect(a).toHaveURL(/\/groups\/\d+/);
     const groupUrl = a.url();
 
     await b.goto(groupUrl);
@@ -109,18 +109,18 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     const { data: conv } = await bartek.db.rpc("get_or_create_conversation", { other_user: ania.id });
     await bartek.db.from("messages").insert({ conversation_id: conv, sender_id: bartek.id, body: "Hej Ania, masz już mieszkanie?" });
 
-    await a.goto("/roj");
+    await a.goto("/swarm");
     const chats = a.getByRole("navigation").last().getByRole("link", { name: /Czaty/ });
     await expect(chats).toContainText("1");
     await chats.click();
     await expect(a.getByText("Hej Ania, masz już mieszkanie?")).toBeVisible();
     await shot(a, "06-czaty");
     await a.getByText("Hej Ania, masz już mieszkanie?").click();
-    await expect(a).toHaveURL(/\/wiadomosci\//);
+    await expect(a).toHaveURL(/\/messages\//);
     await a.getByPlaceholder("Napisz do grupy…").fill("Jeszcze nie, szukajmy razem!");
     await a.getByRole("button", { name: "Wyślij" }).click();
     await expect(a.getByText("Jeszcze nie, szukajmy razem!")).toBeVisible();
-    await a.goto("/roj");
+    await a.goto("/swarm");
     await expect(a.getByRole("navigation").last().getByRole("link", { name: /Czaty/ })).not.toContainText(/\d/);
   });
 
@@ -131,14 +131,14 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await a.getByRole("button", { name: "Poproś o buddy" }).click();
     await expect(a.getByText("Prośba wysłana")).toBeVisible();
 
-    await c.goto("/czaty");
+    await c.goto("/chats");
     await expect(c.getByText("prosi, żebyś był/a buddy")).toBeVisible();
     await c.getByRole("button", { name: "Akceptuj" }).click();
-    await expect(c).toHaveURL(/\/wiadomosci\//);
+    await expect(c).toHaveURL(/\/messages\//);
   });
 
   test("Filtry ludzi: uczelnia, kierunek, kraj i miasto (polskie nazwy)", async () => {
-    await a.goto("/ludzie");
+    await a.goto("/people");
     await a.getByRole("button", { name: "SGH", exact: true }).click();
     await a.getByLabel("Kierunek lub wydział").fill("finansów");
     await a.getByRole("button", { name: "Szukaj", exact: true }).click();
@@ -158,7 +158,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   });
 
   test("Tworzenie wydarzenia (godzina w strefie użytkownika) i „Idę”", async () => {
-    await a.goto("/wydarzenia/nowe");
+    await a.goto("/events/new");
     await a.getByLabel("Nazwa").fill("Testowe aperitivo");
     await a.getByLabel("Kiedy").fill("2026-12-12T19:30");
     await a.getByLabel("Kraj").selectOption("IT");
@@ -169,7 +169,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await a.getByRole("dialog", { name: "Dopasuj zdjęcie" }).getByRole("button", { name: "Zapisz" }).click();
     await expect(a.locator('img[src*="/events/"]')).toBeVisible();
     await a.getByRole("button", { name: "Opublikuj wydarzenie" }).click();
-    await expect(a).toHaveURL(/\/wydarzenia$/);
+    await expect(a).toHaveURL(/\/events$/);
     const card = a.locator("article", { hasText: "Testowe aperitivo" });
     await expect(card.locator('img[src*="/events/"]')).toBeVisible();
     await expect(card).toContainText("19:30");
@@ -180,15 +180,15 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   });
 
   test("Odkrywanie grup: zakładanie brakującej grupy (Madryt)", async () => {
-    await a.goto("/grupy?tab=city&cc=ES&city=Madrid&sem=2027S");
+    await a.goto("/groups?tab=city&cc=ES&city=Madrid&sem=2027S");
     await a.getByRole("button", { name: "Utwórz grupę i dołącz" }).click();
-    await expect(a).toHaveURL(/\/grupy\/\d+/);
+    await expect(a).toHaveURL(/\/groups\/\d+/);
     await expect(a.getByText("Madryt")).toBeVisible();
     await shot(a, "11-nowa-grupa");
   });
 
   test("Profil: dodanie drugiej wymiany", async () => {
-    await a.goto("/profil");
+    await a.goto("/profile");
     await a.getByRole("button", { name: "Dodaj wymianę" }).click();
     await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).fill("polimi");
     await a.getByRole("button", { name: /Politecnico di Milano/ }).first().click();
@@ -202,7 +202,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   });
 
   test("Przełączenie na angielski", async () => {
-    await a.goto("/roj");
+    await a.goto("/swarm");
     await a.getByRole("button", { name: "en", exact: true }).click();
     await expect(a.getByRole("heading", { name: "Your swarm" })).toBeVisible();
     await expect(a.getByText("Milan").first()).toBeVisible();
@@ -213,12 +213,12 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
 
   test("Zrzuty ekranów i brak przewijania w bok", async () => {
     for (const [path, name] of [
-      ["/ludzie", "20-ludzie"],
-      ["/grupy", "21-odkrywaj"],
-      ["/wydarzenia", "22-wydarzenia"],
-      ["/czaty", "23-czaty"],
-      ["/profil", "24-profil"],
-      ["/regulamin", "25-regulamin"],
+      ["/people", "20-ludzie"],
+      ["/groups", "21-odkrywaj"],
+      ["/events", "22-wydarzenia"],
+      ["/chats", "23-czaty"],
+      ["/profile", "24-profil"],
+      ["/terms", "25-regulamin"],
     ] as const) {
       await a.goto(path);
       await noSideScroll(a);
@@ -228,10 +228,10 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
 
   test("Mieszkania: pokój do przejęcia i prośba o sprawdzenie", async () => {
     await admin.from("profiles").update({ checks_housing: true }).eq("id", celina.id);
-    await a.goto("/mieszkania");
-    await expect(a.getByRole("link", { name: /Mediolan/ }).first()).toBeVisible();
+    await a.goto("/housing");
+    await expect(a.getByLabel("Szukaj miasta")).toHaveAttribute("placeholder", "Mediolan");
     await a.getByRole("link", { name: "Dodaj pokój" }).click();
-    await expect(a).toHaveURL(/\/mieszkania\/nowy/);
+    await expect(a).toHaveURL(/\/housing\/new/);
     await a.getByLabel("Tytuł").fill("Pokój testowy przy Bocconi");
     await a.getByLabel("Cena za miesiąc").fill("700");
     await a.getByLabel("Dostępny od").fill("2027-02-01");
@@ -240,7 +240,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await a.getByRole("dialog", { name: "Dopasuj zdjęcie" }).getByRole("button", { name: "Zapisz" }).click();
     await expect(a.locator('img[src*="/rooms/"]')).toBeVisible();
     await a.getByRole("button", { name: "Opublikuj pokój" }).click();
-    await expect(a).toHaveURL(/\/mieszkania\?cc=IT&city=Milan&tab=rooms/);
+    await expect(a).toHaveURL(/\/housing\?cc=IT&city=Milan&tab=rooms/);
     const card = a.locator("article", { hasText: "Pokój testowy przy Bocconi" });
     await expect(card).toContainText("700");
     await expect(card.locator('img[src*="/rooms/"]')).toBeVisible();
@@ -254,15 +254,15 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await expect(a.getByText("Prośba wysłana")).toBeVisible();
     await shot(a, "15-sprawdzenie");
 
-    await c.goto("/czaty");
+    await c.goto("/chats");
     await expect(c.getByText(/prosi o sprawdzenie mieszkania/)).toBeVisible();
     await c.locator("form", { has: c.locator('input[name="status"][value="accepted"]') }).getByRole("button").click();
-    await expect(c).toHaveURL(/\/wiadomosci\//);
+    await expect(c).toHaveURL(/\/messages\//);
     await expect(c.getByText(/oglądanie w czwartek 18:00/)).toBeVisible();
   });
 
   test("Usunięcie konta", async () => {
-    await a.goto("/profil");
+    await a.goto("/profile");
     await a.getByRole("button", { name: "Usuń konto" }).click();
     const confirm = a.getByRole("button", { name: "Usuń konto na zawsze" });
     await expect(confirm).toBeDisabled();
