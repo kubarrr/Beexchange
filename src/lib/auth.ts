@@ -29,6 +29,11 @@ export type MyProfile = {
   bio: string;
   open_to_questions: boolean;
   wants_buddy: boolean;
+  looking_for_housing: boolean;
+  helps_departure: boolean;
+  checks_housing: boolean;
+  stage_choice: string | null;
+  stage_semester: string | null;
   home_institution_id: number | null;
   exchange_institution_id: number | null;
   home: Institution | null;
@@ -41,7 +46,7 @@ export type HomeRow = { institution_id: number; field_of_study: string; faculty:
 export type ExchangeRow = { id: number; institution_id: number; semester: string; status: "going" | "been"; institution: Institution };
 
 export const MY_PROFILE_SELECT = `id, full_name, avatar_url, status, semester, field_of_study, study_year, passions, languages, bio,
-  open_to_questions, wants_buddy, home_institution_id, exchange_institution_id,
+  open_to_questions, wants_buddy, looking_for_housing, helps_departure, checks_housing, stage_choice, stage_semester, home_institution_id, exchange_institution_id,
   home:institutions!profiles_home_institution_id_fkey(${INSTITUTION_FIELDS}),
   exchange:institutions!profiles_exchange_institution_id_fkey(${INSTITUTION_FIELDS}),
   homes:profile_homes(institution_id, field_of_study, faculty, study, position, institution:institutions(${INSTITUTION_FIELDS})),

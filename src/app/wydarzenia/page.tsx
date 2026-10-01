@@ -5,6 +5,7 @@ import { EmptyState, Flag, PageTitle } from "@/components/bx";
 import { LocalDate } from "@/components/LocalDate";
 import { PhotoBanner, loadPlacePhotos, placeKey as photoKey } from "@/components/PlacePhoto";
 import { cityName } from "@/lib/cities";
+import { semesterPhase } from "@/lib/domain";
 import { EventFilters } from "./EventFilters";
 import { requireProfile } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
@@ -28,21 +29,33 @@ type EventRow = {
   event_attendees: { user_id: string }[];
 };
 
-const TABS = ["foryou", "all", "online"] as const;
 
 // Pokazujemy też wydarzenia, które zaczęły się do 3 godzin temu
 function recentCutoff() {
   return new Date(Date.now() - 3 * 3600 * 1000).toISOString();
 }
-type Tab = (typeof TABS)[number];
 const placeKey = (cc: string | null | undefined, city: string | null | undefined) => `${cc ?? ""}:${(city ?? "").toLowerCase()}`;
 
 export default async function EventsPage({ searchParams }: PageProps<"/wydarzenia">) {
   const sp = await searchParams;
-  const tab: Tab = TABS.includes(sp.tab as Tab) ? (sp.tab as Tab) : "foryou";
-  const cc = typeof sp.cc === "string" && /^[A-Z]{2}$/.test(sp.cc) ? sp.cc : "";
-  const city = typeof sp.city === "string" ? sp.city.slice(0, 80) : "";
+  const qCc = typeof sp.cc === "string" && /^[A-Z]{2}$/.test(sp.cc) ? sp.cc : "";
+  const qCity = typeof sp.city === "string" ? sp.city.slice(0, 80) : "";
   const { supabase, userId, profile: me } = await requireProfile("/wydarzenia");
+
+  // Moje miasta: najpierw miasta wymian (bieżących i przyszłych), potem uczelni macierzystych
+  const myCities = new Map<string, { cc: string; city: string }>();
+  const ordered = [
+    ...me.exchanges.filter((x) => semesterPhase(x.semester) !== "past").map((x) => x.institution),
+    ...me.homes.map((h) => h.institution),
+    ...me.exchanges.map((x) => x.institution),
+  ];
+  for (const i of ordered) if (i.city) myCities.set(placeKey(i.country_code, i.city), { cc: i.country_code, city: i.city });
+  const first = [...myCities.values()][0];
+
+  // Widok: wybrane miasto, „inne miasto” (kraj → miasto) albo Online Q&A. Domyślnie moje pierwsze miasto.
+  const view: "city" | "other" | "online" = sp.tab === "online" ? "online" : sp.tab === "other" || (!qCity && !first) ? "other" : "city";
+  const cc = view === "city" && !qCity ? first!.cc : qCc;
+  const city = view === "city" && !qCity ? first!.city : qCity;
   const { t, locale } = await getDictionary();
 
   const { data } = await supabase
@@ -53,24 +66,23 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
     .limit(300);
   const upcoming = (data ?? []) as EventRow[];
 
-  // Miejsca z wydarzeniami (do filtrów) i moje miasta (uczelnie i wymiany) do „Dla Ciebie”
+  // Miejsca z wydarzeniami (do wyboru „inne miasto”)
   const places = new Map<string, { cc: string; city: string }>();
   for (const e of upcoming) if (!e.is_online && e.country_code && e.city) places.set(placeKey(e.country_code, e.city), { cc: e.country_code, city: e.city });
-  const mine = new Set([...me.homes.map((h) => h.institution), ...me.exchanges.map((x) => x.institution)].map((i) => placeKey(i.country_code, i.city)));
 
-  let events = upcoming;
-  if (tab === "foryou") events = upcoming.filter((e) => e.is_online || mine.has(placeKey(e.country_code, e.city)));
-  if (tab === "online") events = upcoming.filter((e) => e.is_online);
-  if (tab === "all") {
-    events = upcoming.filter((e) => (!cc || e.country_code === cc) && (!city || (e.city ?? "").toLowerCase() === city.toLowerCase()));
-  }
+  let events =
+    view === "online"
+      ? upcoming.filter((e) => e.is_online)
+      : upcoming.filter((e) => !e.is_online && (!cc || e.country_code === cc) && (!city || (e.city ?? "").toLowerCase() === city.toLowerCase()));
+  // W „innym mieście” bez wybranego kraju nic nie pokazujemy — wydarzenia są zawsze w konkretnym mieście
+  if (view === "other" && !cc) events = [];
   events = events.slice(0, 60);
+  const chosen = view === "city" ? placeKey(cc, city) : "";
   const photos = await loadPlacePhotos(
     supabase,
     events.filter((e) => !e.is_online && !e.cover_url).map((e) => ({ cc: e.country_code, city: e.city })),
   );
 
-  const tabLabel: Record<Tab, string> = { foryou: t.events.tabForYou, all: t.events.tabAll, online: t.events.tabOnline };
   const audienceTone = { all: "bg-sand", alumni: "bg-ink text-honey", going: "bg-honey" };
 
   return (
@@ -86,14 +98,21 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
       />
 
       <div className="flex flex-wrap gap-2">
-        {TABS.map((k) => (
-          <Link key={k} href={`/wydarzenia?tab=${k}`} className={`chip ${tab === k ? "chip-on" : ""}`}>
-            {tabLabel[k]}
+        {[...myCities.entries()].map(([key, c]) => (
+          <Link key={key} href={`/wydarzenia?cc=${c.cc}&city=${encodeURIComponent(c.city)}`} className={`chip gap-1.5 ${chosen === key ? "chip-on" : ""}`}>
+            <Flag code={c.cc} className="h-3 w-[18px]" />
+            {cityName(c.city, locale)}
           </Link>
         ))}
+        <Link href="/wydarzenia?tab=other" className={`chip ${view === "other" ? "chip-on" : ""}`}>
+          <MapPin size={14} /> {t.events.tabOtherCity}
+        </Link>
+        <Link href="/wydarzenia?tab=online" className={`chip ${view === "online" ? "chip-on" : ""}`}>
+          <Globe size={14} /> {t.events.tabOnline}
+        </Link>
       </div>
 
-      {tab === "all" && <EventFilters locale={locale} cc={cc} city={city} places={[...places.values()]} />}
+      {view === "other" && <EventFilters locale={locale} cc={cc} city={city} places={[...places.values()]} />}
 
       {events.length === 0 && (
         <EmptyState
@@ -103,7 +122,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
             </Link>
           }
         >
-          {tab === "foryou" ? t.events.forYouEmpty : t.events.empty}
+          {view === "other" && !cc ? t.events.pickCity : view === "online" ? t.events.emptyOnline : t.events.emptyCity}
         </EmptyState>
       )}
 
@@ -153,6 +172,20 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
                     {" · "}
                     <a href={e.link} target="_blank" rel="noopener noreferrer" className="font-semibold underline">
                       link
+                    </a>
+                  </>
+                )}
+                {/* Link do mapy z miejsca i miasta — bez klucza API, otwiera Google Maps */}
+                {!e.is_online && e.location && (
+                  <>
+                    {" · "}
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([e.location, e.city].filter(Boolean).join(", "))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold underline"
+                    >
+                      {t.events.map}
                     </a>
                   </>
                 )}

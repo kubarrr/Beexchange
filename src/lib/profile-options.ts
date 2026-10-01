@@ -1,11 +1,13 @@
 import type { Dictionary, Locale } from "@/lib/i18n/dictionaries";
 
-// Etap: szukam 🔎, jadę / jestem na wymianie 🐝, byłem/am 👑 (królowa roju); buddy 🧸
-export const STAGE_EMOJI = { searching: "🔎", going: "🐝", abroad: "🐝", been: "👑" } as const;
+// Typ osoby: 🔍 szuka, ✈️ jedzie, 📍 na wymianie, 👑 absolwent (królowa roju); 🏠 szuka mieszkania, 📋 pomoc przed wyjazdem, 🧸 buddy
+export const STAGE_EMOJI = { searching: "🔍", going: "✈️", abroad: "📍", been: "👑" } as const;
+export const HOUSING_EMOJI = "🏠";
+export const HELPER_EMOJI = "📋";
 export const BUDDY_EMOJI = "🧸";
 
 export const PASSION_EMOJI: Record<string, string> = {
-  travel: "✈️",
+  travel: "🗺️",
   photography: "📷",
   volleyball: "🏐",
   football: "⚽",
@@ -58,6 +60,10 @@ export function parseLanguage(entry: string): { code: string; level: Level } | n
 
 export const DEGREES = { bachelor: 3, engineer: 4, master: 2, long: 6, phd: 4, graduate: 0 } as const;
 export type Degree = keyof typeof DEGREES;
+
+// Nadal studiuje: ma choć jedną uczelnię bez „ukończonych studiów” (brak stopnia też liczymy jako studenta).
+// Tylko studenci mogą być 🧸 buddy — niezależnie od tego, czy byli już na wymianie.
+export const isStudent = (homes: { study?: string | null }[]) => homes.some((h) => h.study !== "graduate");
 
 // Studia zapisujemy jako "stopień:rok", np. "master:1" albo "graduate"
 export function parseStudy(value: string | null | undefined): { degree: Degree; year: number | null } | null {

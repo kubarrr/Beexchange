@@ -1,29 +1,14 @@
-import Link from "next/link";
 import { MessageSquare } from "lucide-react";
 import { startConversation } from "@/app/actions";
-import { Avatar, BuddyBadge, EmptyState, Flag, PageTitle, StatusBadge } from "@/components/bx";
+import { EmptyState, PageTitle } from "@/components/bx";
+import { PERSON_SELECT, PersonCard, type Person } from "@/components/PersonCard";
 import { requireProfile } from "@/lib/auth";
-import { INSTITUTION_FIELDS, institutionShort, semesterLabel, stageOf, type Institution, type Status } from "@/lib/domain";
+import { INSTITUTION_FIELDS, PEOPLE_SEGMENTS as SEGMENTS, type Institution } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 import { PeopleFilters, type PeopleQuery } from "./PeopleFilters";
 
 export const generateMetadata = localizedTitle((t) => t.nav.people);
-
-type Row = {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-  status: Status;
-  semester: string | null;
-  field_of_study: string;
-  wants_buddy: boolean;
-  open_to_questions: boolean;
-  home: Institution | null;
-  exchange: Institution | null;
-  exchanges: { id: number }[];
-  homes: { faculty: string | null; position: number }[];
-};
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 
@@ -32,7 +17,7 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
   const { supabase, profile: me } = await requireProfile("/ludzie");
   const { t, locale } = await getDictionary();
 
-  const seg = (["going", "been"].includes(str(sp.seg)) ? str(sp.seg) : "all") as PeopleQuery["seg"];
+  const seg = ((SEGMENTS as readonly string[]).includes(str(sp.seg)) ? str(sp.seg) : "all") as PeopleQuery["seg"];
   const exParam = str(sp.ex);
   const exId = exParam === "all" ? null : Number(exParam) || me.exchange_institution_id;
   const huId = Number(str(sp.hu)) || null;
@@ -48,6 +33,7 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
     cc: /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "",
     city: str(sp.city).slice(0, 80),
     sem: /^\d{4}[WS]$/.test(str(sp.sem)) ? str(sp.sem) : "",
+    housing: sp.housing === "1",
     buddy: sp.buddy === "1",
     open: sp.open === "1",
   };
@@ -62,20 +48,17 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
         p_cc: filters.cc || null,
         p_home: filters.hu?.id ?? null,
         p_field: filters.field || null,
+        p_housing: filters.housing,
         p_buddy: filters.buddy,
         p_open: filters.open,
         lim: 60,
       })
-      .select(
-        `id, full_name, avatar_url, status, semester, field_of_study, wants_buddy, open_to_questions,
-         home:institutions!profiles_home_institution_id_fkey(${INSTITUTION_FIELDS}),
-         exchange:institutions!profiles_exchange_institution_id_fkey(${INSTITUTION_FIELDS}),
-         exchanges(id), homes:profile_homes(faculty, position)`,
-      ),
+      .select(PERSON_SELECT),
     supabase.from("exchanges").select("institutions(city, country_code)").limit(2000),
   ]);
   if (error) console.error("search_people", error.message);
-  const people = (data ?? []) as unknown as Row[];
+  const people = (data ?? []) as unknown as Person[];
+  const myHomeIds = me.homes.map((h) => h.institution_id);
 
   const places = new Map<string, { city: string; cc: string }>();
   for (const r of placeRows ?? []) {
@@ -101,46 +84,23 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
       ) : (
         <div className="space-y-3">
           {people.map((p) => (
-            <div key={p.id} className="panel flex items-center gap-3 p-3.5">
-              <Link href={`/u/${p.id}`} className="shrink-0">
-                <Avatar name={p.full_name} url={p.avatar_url} size={52} />
-              </Link>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Link href={`/u/${p.id}`} className="font-bold hover:underline">
-                    {p.full_name}
-                  </Link>
-                  <StatusBadge status={stageOf(p.status, p.semester)} t={t} />
-                  {p.wants_buddy && <BuddyBadge t={t} />}
-                </div>
-                <p className="truncate text-[13px] text-muted">
-                  {p.home ? institutionShort(p.home, locale) : ""}
-                  {(() => {
-                    const faculty = [...p.homes].sort((a, b) => a.position - b.position)[0]?.faculty;
-                    return faculty ? ` · ${faculty}` : "";
-                  })()}
-                  {p.field_of_study && ` · ${p.field_of_study}`}
-                </p>
-                {p.exchange && (
-                  <p className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold">
-                    <Flag code={p.exchange.country_code} className="h-3 w-[18px]" />
-                    <span className="truncate">
-                      {institutionShort(p.exchange, locale)}
-                      {p.semester && ` · ${semesterLabel(p.semester, t)}`}
-                      {p.exchanges.length > 1 && <span className="font-normal text-muted"> +{p.exchanges.length - 1}</span>}
-                    </span>
-                  </p>
-                )}
-              </div>
-              {p.open_to_questions && (
-                <form action={startConversation}>
-                  <input type="hidden" name="user_id" value={p.id} />
-                  <button aria-label={t.common.write} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-honey">
-                    <MessageSquare size={20} strokeWidth={2.2} />
-                  </button>
-                </form>
-              )}
-            </div>
+            <PersonCard
+              key={p.id}
+              p={p}
+              locale={locale}
+              t={t}
+              viewerHomeIds={myHomeIds}
+              action={
+                p.open_to_questions && (
+                  <form action={startConversation}>
+                    <input type="hidden" name="user_id" value={p.id} />
+                    <button aria-label={t.common.write} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-honey">
+                      <MessageSquare size={20} strokeWidth={2.2} />
+                    </button>
+                  </form>
+                )
+              }
+            />
           ))}
         </div>
       )}

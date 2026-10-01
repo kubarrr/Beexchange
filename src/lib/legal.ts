@@ -31,7 +31,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
           [
             "Dane konta: adres e-mail (służy do logowania; nie pokazujemy go innym użytkownikom). Przy logowaniu przez Google otrzymujemy od Google Twój adres e-mail, imię i nazwisko oraz zdjęcie profilowe.",
             "Dane profilu, które sam(a) podajesz: imię i nazwisko, zdjęcie, uczelnie macierzyste, kierunek, stopień i rok studiów, wymiany (uczelnia, semestr, status), pasje, języki, opis, ustawienia kontaktu i bycia buddy, wybrany język aplikacji.",
-            "Treści, które tworzysz: wiadomości prywatne, wiadomości w grupach, członkostwa w grupach, wydarzenia (wraz ze zdjęciami) i zapisy na nie, prośby o buddy, zgłoszenia oraz uczelnie dodane do bazy.",
+            "Treści, które tworzysz: wiadomości prywatne, wiadomości w grupach, członkostwa w grupach, wydarzenia (wraz ze zdjęciami) i zapisy na nie, ogłoszenia pokoi (wraz ze zdjęciami), prośby o sprawdzenie mieszkania, prośby o buddy, zgłoszenia oraz uczelnie dodane do bazy.",
             "Dane techniczne: adres IP, informacje o przeglądarce i urządzeniu oraz czas zdarzeń zapisywane w logach naszych dostawców w celu zapewnienia bezpieczeństwa i działania serwisu.",
           ],
         ],
@@ -115,7 +115,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
           [
             "Account data: email address (used to log in; never shown to other users). When you sign in with Google, we receive your email address, name and profile picture from Google.",
             "Profile data you provide: name, photo, home universities, field, degree and year of study, exchanges (university, semester, status), passions, languages, bio, contact and buddy settings, app language.",
-            "Content you create: private messages, group messages, group memberships, events (including photos) and sign-ups, buddy requests, reports and universities you add.",
+            "Content you create: private messages, group messages, group memberships, events (including photos) and sign-ups, room listings (including photos), flat check requests, buddy requests, reports and universities you add.",
             "Technical data: IP address, browser and device information and timestamps stored in our providers' logs for security and operation.",
           ],
         ],
@@ -247,6 +247,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         body: [
           "Odpowiadasz za treści, które publikujesz. Udzielasz Usługodawcy nieodpłatnej, niewyłącznej licencji na ich przechowywanie i wyświetlanie w Serwisie na czas, w którym się w nim znajdują.",
           "Zdjęcia (profilowe i przy wydarzeniach) wgrywasz tylko wtedy, gdy masz do nich prawa: są Twoje albo autor się na to zgodził. Jeśli na zdjęciu widać inne rozpoznawalne osoby, potrzebujesz ich zgody na publikację wizerunku. Nie wgrywaj zdjęć skopiowanych z internetu.",
+          "Ogłoszenia mieszkaniowe i sprawdzenia mieszkań na miejscu to ustalenia między użytkownikami. Usługodawca nie jest stroną umowy najmu ani pośrednikiem w obrocie nieruchomościami, nie weryfikuje ofert i nie przyjmuje płatności za najem. Pokój możesz wystawić tylko w mieście, w którym masz wymianę albo uczelnię, i tylko jeśli masz prawo go przekazać lub podnająć.",
           "Zdjęcia miast pochodzą z Wikimedia Commons i są używane na wolnych licencjach (np. CC BY-SA). Autora i licencję podajemy w podpisie zdjęcia, który prowadzi do strony źródłowej.",
           "Usługodawca nie weryfikuje informacji podawanych przez użytkowników (np. o uczelniach, mieszkaniach czy przedmiotach). Relacje buddy, spotkania i wydarzenia są ustaleniami między użytkownikami. Na spotkania offline chodź z rozwagą i nigdy nie wpłacaj pieniędzy nieznajomym bez sprawdzenia.",
         ],
@@ -329,6 +330,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         body: [
           "You are responsible for the content you post. You grant the Provider a free, non-exclusive licence to store and display it in the Service for as long as it remains there.",
           "Upload photos (profile and event photos) only if you have the rights to them: they are yours or the author agreed. If other recognisable people appear in a photo, you need their consent to publish their image. Do not upload photos copied from the internet.",
+          "Housing listings and on-site flat checks are arrangements between users. The Provider is not a party to any rental agreement or a real estate agent, does not verify offers and does not accept rent payments. You may list a room only in a city where you have an exchange or your university, and only if you have the right to pass it on or sublet it.",
           "City photos come from Wikimedia Commons and are used under free licences (e.g. CC BY-SA). The author and licence are shown in the photo caption, which links to the source page.",
           "The Provider does not verify information provided by users (e.g. about universities, housing or courses). Buddy relationships, meetups and events are arrangements between users. Meet offline with care and never send money to strangers without checking.",
         ],

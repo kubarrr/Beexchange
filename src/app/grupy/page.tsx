@@ -5,7 +5,7 @@ import { EmptyState, PageTitle } from "@/components/bx";
 import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
-import { groupTitle, type GroupKind } from "@/lib/groups";
+import { ACTIVE_GROUP_KINDS, groupTitle, type GroupKind } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 import { DiscoverFilters, type DiscoverQuery } from "./DiscoverFilters";
@@ -52,7 +52,8 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
     }),
     cc && tab !== "semester" ? supabase.from("institutions").select("city").eq("country_code", cc).not("city", "is", null).limit(3000) : Promise.resolve({ data: [] }),
   ]);
-  const groups = (data ?? []) as Row[];
+  // Stare rodzaje (trasa, absolwenci) zostają tylko w czatach członków
+  const groups = ((data ?? []) as Row[]).filter((g) => ACTIVE_GROUP_KINDS.includes(g.kind));
   const cities = [...new Set((cityRows ?? []).map((r) => r.city as string))].sort((a, b) => a.localeCompare(b));
 
   const instIds = [...new Set(groups.flatMap((g) => [g.home_institution_id, g.exchange_institution_id]).filter((x): x is number => !!x))];

@@ -34,7 +34,7 @@ export async function Header() {
             ))}
           </form>
           {userId ? (
-            <Link href="/profil" className="hidden md:block" aria-label={t.nav.profile}>
+            <Link href="/profil" aria-label={t.nav.profile} className="rounded-full ring-2 ring-transparent hover:ring-honey">
               <Avatar name={profile?.full_name ?? ""} url={profile?.avatar_url} size={36} />
             </Link>
           ) : (

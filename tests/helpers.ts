@@ -30,7 +30,8 @@ export async function makeBot(key: string, name: string): Promise<Bot> {
 
 export async function contextFor(browser: Browser, bot: Bot, baseURL: string): Promise<BrowserContext> {
   const ctx = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "pl-PL", timezoneId: "Europe/Warsaw" });
-  await ctx.addCookies(bot.cookies.map((c) => ({ ...c, domain: "localhost", path: "/", sameSite: "Lax" as const })));
+  // Domyślny język to angielski; testy sprawdzają polską wersję
+  await ctx.addCookies([...bot.cookies, { name: "lang", value: "pl" }].map((c) => ({ ...c, domain: "localhost", path: "/", sameSite: "Lax" as const })));
   return ctx;
 }
 
@@ -40,15 +41,16 @@ export async function inst(name: string) {
 }
 
 // Profil ustawiony bezpośrednio w bazie (dla osób, które nie przechodzą onboardingu w teście)
-export async function setProfile(bot: Bot, p: { home: number; ex: number; semester: string; status: "going" | "been"; buddy?: boolean; open?: boolean }) {
+// Bez „ex” to lokalny student bez wymiany (np. buddy na uczelni, na którą ktoś jedzie)
+export async function setProfile(bot: Bot, p: { home: number; ex?: number; semester?: string; status?: "going" | "been"; buddy?: boolean; open?: boolean }) {
   await admin
     .from("profiles")
     .update({
       onboarded: true,
-      status: p.status,
+      status: p.ex ? p.status : "searching",
       home_institution_id: p.home,
-      exchange_institution_id: p.ex,
-      semester: p.semester,
+      exchange_institution_id: p.ex ?? null,
+      semester: p.ex ? p.semester : null,
       field_of_study: "Finanse",
       study_year: "bachelor:3",
       wants_buddy: !!p.buddy,
@@ -58,14 +60,14 @@ export async function setProfile(bot: Bot, p: { home: number; ex: number; semest
     })
     .eq("id", bot.id);
   await admin.from("profile_homes").insert({ user_id: bot.id, institution_id: p.home, field_of_study: "Finanse", study: "bachelor:3", position: 0 });
-  await admin.from("exchanges").insert({ user_id: bot.id, institution_id: p.ex, semester: p.semester, status: p.status });
+  if (p.ex) await admin.from("exchanges").insert({ user_id: bot.id, institution_id: p.ex, semester: p.semester, status: p.status });
 }
 
 export async function cleanup() {
   const { data } = await admin.auth.admin.listUsers({ perPage: 500 });
   const bots = data.users.filter((u) => u.email?.endsWith(`@${DOMAIN}`));
   for (const b of bots) {
-    for (const bucket of ["avatars", "events"]) {
+    for (const bucket of ["avatars", "events", "rooms"]) {
       const { data: files } = await admin.storage.from(bucket).list(b.id);
       if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${b.id}/${f.name}`));
     }

@@ -4,16 +4,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { CalendarDays, Hexagon, MessageSquare, User, Users } from "lucide-react";
+import { CalendarDays, Hexagon, House, MessageSquare, Users } from "lucide-react";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
 const ITEMS = [
   { href: "/roj", key: "swarm", Icon: Hexagon },
   { href: "/ludzie", key: "people", Icon: Users },
+  { href: "/mieszkania", key: "housing", Icon: House },
   { href: "/wydarzenia", key: "events", Icon: CalendarDays },
   { href: "/czaty", key: "chats", Icon: MessageSquare },
-  { href: "/profil", key: "profile", Icon: User },
 ] as const;
+// Profil jest pod zdjęciem w prawym górnym rogu (Header)
 
 function Badge({ n }: { n: number }) {
   return (

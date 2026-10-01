@@ -9,15 +9,19 @@ import { countryName, institutionShort, semesterLabel, semesterOptions, type Ins
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 import { createClient } from "@/lib/supabase/client";
 import { cityName } from "@/lib/cities";
+import { PEOPLE_SEGMENTS as SEGMENTS } from "@/lib/domain";
+import { STAGE_EMOJI } from "@/lib/profile-options";
+
 
 export type PeopleQuery = {
-  seg: "all" | "going" | "been";
+  seg: (typeof SEGMENTS)[number];
   hu: Institution | null;
   ex: Institution | null;
   field: string;
   cc: string;
   city: string;
   sem: string;
+  housing: boolean;
   buddy: boolean;
   open: boolean;
 };
@@ -31,6 +35,7 @@ function toUrl(f: PeopleQuery) {
   if (f.cc) sp.set("cc", f.cc);
   if (f.city) sp.set("city", f.city);
   if (f.sem) sp.set("sem", f.sem);
+  if (f.housing) sp.set("housing", "1");
   if (f.buddy) sp.set("buddy", "1");
   if (f.open) sp.set("open", "1");
   return `/ludzie?${sp.toString()}`;
@@ -93,19 +98,31 @@ export function PeopleFilters({
 
   // Dodatkowe filtry (w panelu „Więcej filtrów”)
   const extra: { label: string; clear: Partial<PeopleQuery> }[] = [];
-  if (initial.cc) extra.push({ label: countryName(initial.cc, locale), clear: { cc: "", city: "" } });
+  if (initial.cc)
+    extra.push({
+      label: countryName(initial.cc, locale),
+      clear: { cc: "", city: "" },
+    });
   if (initial.city) extra.push({ label: cityName(initial.city, locale), clear: { city: "" } });
   if (initial.sem) extra.push({ label: semesterLabel(initial.sem, t), clear: { sem: "" } });
+  if (initial.housing) extra.push({ label: t.people.onlyHousing, clear: { housing: false } });
   if (initial.buddy) extra.push({ label: `🧸 ${t.people.buddy}`, clear: { buddy: false } });
   if (initial.open) extra.push({ label: t.people.onlyOpen, clear: { open: false } });
 
   const countries = [...new Set(places.map((p) => p.cc))].map((cc) => ({ cc, name: countryName(cc, locale) })).sort((a, b) => a.name.localeCompare(b.name, locale));
-  const cities = [...new Set(places.filter((p) => !f.cc || p.cc === f.cc).map((p) => p.city))]
-    .map((c) => ({ c, n: cityName(c, locale) }))
-    .sort((a, b) => a.n.localeCompare(b.n, locale));
+  const cities = [...new Set(places.filter((p) => !f.cc || p.cc === f.cc).map((p) => p.city))].map((c) => ({ c, n: cityName(c, locale) })).sort((a, b) => a.n.localeCompare(b.n, locale));
 
   const toggles = [
-    { key: "buddy", label: `🧸 ${t.people.onlyBuddy}`, hint: t.people.onlyBuddyHint },
+    {
+      key: "housing",
+      label: t.people.onlyHousing,
+      hint: t.people.onlyHousingHint,
+    },
+    {
+      key: "buddy",
+      label: `🧸 ${t.people.onlyBuddy}`,
+      hint: t.people.onlyBuddyHint,
+    },
     { key: "open", label: t.people.onlyOpen, hint: t.people.onlyOpenHint },
   ] as const;
 
@@ -128,8 +145,33 @@ export function PeopleFilters({
           <InstitutionPicker locale={locale} value={f.ex} onChange={(ex) => setF({ ...f, ex })} />
           <MineChips list={myExchanges} value={f.ex} onPick={(ex) => setF({ ...f, ex })} locale={locale} label={t.people.mine} />
         </div>
+        <div className="space-y-2">
+          <span className="label-caps">{t.people.who}</span>
+          <div className="grid grid-cols-5 gap-1 rounded-2xl bg-sand p-1">
+            {SEGMENTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={f.seg === s}
+                onClick={() => setF({ ...f, seg: s })}
+                className={`flex min-h-12 flex-col items-center justify-center rounded-xl px-0.5 text-[11px] leading-tight font-semibold ${f.seg === s ? "bg-ink text-honey" : ""}`}
+              >
+                {s === "all" ? (
+                  <span className="text-[13px]">{t.people.segAll}</span>
+                ) : (
+                  <>
+                    <span aria-hidden="true" className="text-base leading-none">
+                      {STAGE_EMOJI[s]}
+                    </span>
+                    <span className="mt-0.5 max-w-full truncate">{t.people.seg[s]}</span>
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
         <label className="block space-y-2">
-          <span className="label-caps">{t.people.field}</span>
+          <span className="label-caps">{t.people.fieldOptional}</span>
           <input className="field" value={f.field} list="people-field-suggestions" placeholder={t.people.fieldPh} onChange={(e) => setF({ ...f, field: e.target.value })} />
           <datalist id="people-field-suggestions">
             {(huId ? suggestions : []).map((s) => (
@@ -141,22 +183,21 @@ export function PeopleFilters({
           <button type="submit" className="btn-primary min-h-12 flex-1">
             <Search size={18} /> {t.people.search}
           </button>
-          <button type="button" onClick={() => setOpen(true)} aria-label={t.people.moreFilters} className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-ink">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label={t.people.moreFilters}
+            className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-ink"
+          >
             <SlidersHorizontal size={20} />
             {extra.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-cream bg-honey px-1 text-[11px] font-extrabold text-ink">{extra.length}</span>
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-cream bg-honey px-1 text-[11px] font-extrabold text-ink">
+                {extra.length}
+              </span>
             )}
           </button>
         </div>
       </form>
-
-      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-sand p-1">
-        {(["all", "going", "been"] as const).map((s) => (
-          <button key={s} type="button" onClick={() => apply({ ...f, seg: s })} className={`min-h-10 rounded-xl text-sm font-semibold ${initial.seg === s ? "bg-ink text-honey" : ""}`}>
-            {{ all: t.people.segAll, going: t.people.segGoing, been: t.people.segBeen }[s]}
-          </button>
-        ))}
-      </div>
 
       {extra.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -181,7 +222,21 @@ export function PeopleFilters({
             <div className="mx-auto mb-3 h-[5px] w-11 rounded-full bg-line md:hidden" />
             <div className="flex items-center justify-between">
               <h2 className="display text-2xl">{t.people.moreFilters}</h2>
-              <button type="button" onClick={() => setF({ ...f, cc: "", city: "", sem: "", buddy: false, open: false })} className="min-h-11 text-sm font-semibold underline">
+              <button
+                type="button"
+                onClick={() =>
+                  setF({
+                    ...f,
+                    cc: "",
+                    city: "",
+                    sem: "",
+                    housing: false,
+                    buddy: false,
+                    open: false,
+                  })
+                }
+                className="min-h-11 text-sm font-semibold underline"
+              >
                 {t.common.clear}
               </button>
             </div>

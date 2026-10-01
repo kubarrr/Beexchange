@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { INSTITUTION_FIELDS, type Institution } from "@/lib/domain";
-import { PASSION_KEYS } from "@/lib/i18n/dictionaries";
+import { INSTITUTION_FIELDS, type Institution, autoStage, currentSemester, personStage, semesterPhase } from "@/lib/domain";
+import { PASSION_KEYS, dictionaries } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n";
 
 export type HomeInput = { institution_id: number; field_of_study: string; study: string; faculty?: string };
-export type ExchangeInput = { institution_id: number; semester: string; status: "going" | "been" };
+export type ExchangeInput = { institution_id: number; semester: string };
 
 export type ProfileInput = {
   full_name: string;
@@ -19,6 +20,10 @@ export type ProfileInput = {
   bio: string;
   open_to_questions: boolean;
   wants_buddy: boolean;
+  looking_for_housing: boolean;
+  helps_departure: boolean;
+  checks_housing: boolean;
+  stage_choice?: string | null;
 };
 
 const clip = (s: unknown, max: number) => String(s ?? "").trim().slice(0, max);
@@ -44,7 +49,8 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
     .filter((x) => Number.isInteger(x.institution_id) && /^\d{4}[WS]$/.test(x.semester ?? ""))
     .filter((x, i, all) => all.findIndex((y) => y.institution_id === x.institution_id && y.semester === x.semester) === i)
     .slice(0, 6)
-    .map((x) => ({ user_id: userId, institution_id: x.institution_id, semester: x.semester, status: x.status === "been" ? "been" : "going" }));
+    // Status wynika z semestru: przeszły = „byłem”, bieżący i przyszły = „jadę/jestem”
+    .map((x) => ({ user_id: userId, institution_id: x.institution_id, semester: x.semester, status: semesterPhase(x.semester) === "past" ? "been" : "going" }));
 
   const fullName = clip(input.full_name, 80);
   if (!fullName) return { ok: false, error: "name" };
@@ -55,6 +61,10 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
   const been = exchanges.filter((x) => x.status === "been").sort((a, b) => b.semester.localeCompare(a.semester));
   const main = going[0] ?? been[0] ?? null;
   const status = going.length ? "going" : been.length ? "been" : "searching";
+  // Ręczny wybór etapu zapisujemy tylko, gdy różni się od wyliczonego z semestrów; ważny do końca semestru
+  const auto = autoStage(exchanges);
+  const choice = ["searching", "going", "abroad", "been"].includes(input.stage_choice ?? "") && input.stage_choice !== auto ? input.stage_choice! : null;
+  const stage = personStage(exchanges, { stage_choice: choice, stage_semester: currentSemester() });
 
   const update: Record<string, unknown> = {
     full_name: fullName,
@@ -68,7 +78,13 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
     languages: (input.languages ?? []).filter((l) => LANG.test(l)).slice(0, 8),
     bio: clip(input.bio, 1000),
     open_to_questions: !!input.open_to_questions,
-    wants_buddy: !!input.wants_buddy,
+    // 🧸 buddy tylko dla osób, które nadal studiują; 🏠 tylko przed wyjazdem i na miejscu; 📋 tylko z wymianą w profilu
+    wants_buddy: !!input.wants_buddy && homes.some((h) => h.study !== "graduate"),
+    looking_for_housing: !!input.looking_for_housing && (stage === "going" || stage === "abroad"),
+    helps_departure: !!input.helps_departure && exchanges.length > 0,
+    checks_housing: !!input.checks_housing,
+    stage_choice: choice,
+    stage_semester: choice ? currentSemester() : null,
     onboarded: true,
   };
   if (input.avatar_url !== undefined) update.avatar_url = input.avatar_url;
@@ -229,10 +245,98 @@ export async function deleteAccount(formData: FormData) {
 
   const { data: files } = await supabase.storage.from("avatars").list(userId);
   if (files?.length) await supabase.storage.from("avatars").remove(files.map((f) => `${userId}/${f.name}`));
-  const { data: eventFiles } = await supabase.storage.from("events").list(userId);
-  if (eventFiles?.length) await supabase.storage.from("events").remove(eventFiles.map((f) => `${userId}/${f.name}`));
+  for (const bucket of ["events", "rooms"]) {
+    const { data: files } = await supabase.storage.from(bucket).list(userId);
+    if (files?.length) await supabase.storage.from(bucket).remove(files.map((f) => `${userId}/${f.name}`));
+  }
   const { error } = await supabase.rpc("delete_my_account");
   if (error) throw new Error(error.message);
   await supabase.auth.signOut();
   redirect("/?deleted=1");
+}
+
+// ============ MIESZKANIA ============
+export type RoomInput = {
+  country_code: string;
+  city: string;
+  kind: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  available_from: string;
+  available_to: string;
+  area: string;
+  photos: string[];
+};
+
+export async function createRoom(input: RoomInput): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { supabase, userId } = await requireUser("/mieszkania/nowy");
+  const day = /^\d{4}-\d{2}-\d{2}$/;
+  if (!day.test(input.available_from ?? "")) return { ok: false, error: "date" };
+  // Zdjęcia tylko z własnego folderu w naszym Storage
+  const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/rooms/${userId}/`;
+  const { error } = await supabase.from("rooms").insert({
+    author_id: userId,
+    country_code: clip(input.country_code, 2).toUpperCase(),
+    city: clip(input.city, 80),
+    kind: ["room", "shared", "flat"].includes(input.kind) ? input.kind : "room",
+    title: clip(input.title, 120),
+    description: clip(input.description, 3000),
+    price: Math.max(0, Math.min(100000, Math.round(Number(input.price) || 0))),
+    currency: /^[A-Z]{3}$/.test(input.currency ?? "") ? input.currency : "EUR",
+    available_from: input.available_from,
+    available_to: day.test(input.available_to ?? "") ? input.available_to : null,
+    area: clip(input.area, 120) || null,
+    photos: (input.photos ?? []).filter((u) => typeof u === "string" && u.startsWith(prefix)).slice(0, 4),
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/mieszkania");
+  return { ok: true };
+}
+
+export async function setRoomTaken(formData: FormData) {
+  const { supabase, userId } = await requireUser("/mieszkania");
+  await supabase.from("rooms").update({ taken: formData.get("taken") === "1" }).eq("id", Number(formData.get("id"))).eq("author_id", userId);
+  revalidatePath("/mieszkania");
+}
+
+export async function deleteRoom(formData: FormData) {
+  const { supabase, userId } = await requireUser("/mieszkania");
+  const { data: room } = await supabase.from("rooms").delete().eq("id", Number(formData.get("id"))).eq("author_id", userId).select("photos").maybeSingle();
+  const paths = (room?.photos ?? []).map((u: string) => u.split("/storage/v1/object/public/rooms/")[1]).filter(Boolean);
+  if (paths.length) await supabase.storage.from("rooms").remove(paths);
+  revalidatePath("/mieszkania");
+}
+
+// Prośba o sprawdzenie: zapis prośby + wiadomość ze szczegółami w rozmowie ze sprawdzającym
+export async function requestCheck(formData: FormData) {
+  const checker = String(formData.get("checker_id"));
+  const cc = clip(formData.get("country_code"), 2).toUpperCase();
+  const city = clip(formData.get("city"), 80);
+  const details = clip(formData.get("details"), 2000);
+  const { supabase, userId } = await requireUser("/mieszkania");
+  if (details.length < 5) return;
+  const { error } = await supabase.from("check_requests").insert({ requester_id: userId, checker_id: checker, country_code: cc, city, details });
+  if (error) throw new Error(error.message);
+  const { data: conv } = await supabase.rpc("get_or_create_conversation", { other_user: checker });
+  if (conv) {
+    const t = dictionaries[await getLocale()];
+    await supabase.from("messages").insert({ conversation_id: conv, sender_id: userId, body: t.housing.checkMessage(city, details) });
+  }
+  revalidatePath("/mieszkania");
+}
+
+export async function answerCheck(formData: FormData) {
+  const id = Number(formData.get("id"));
+  const status = String(formData.get("status"));
+  if (!["accepted", "declined", "done"].includes(status)) return;
+  const { supabase } = await requireUser("/czaty");
+  const { data: req } = await supabase.from("check_requests").update({ status }).eq("id", id).select("requester_id").single();
+  revalidatePath("/czaty");
+  revalidatePath("/mieszkania");
+  if (status === "accepted" && req) {
+    const { data: conv } = await supabase.rpc("get_or_create_conversation", { other_user: req.requester_id });
+    if (conv) redirect(`/wiadomosci/${conv}`);
+  }
 }

@@ -15,13 +15,17 @@ export type Institution = {
 
 export const INSTITUTION_FIELDS = "id, name, name_en, name_pl, acronym, country_code, city, status";
 
-export function institutionName(i: Pick<Institution, "name" | "name_en" | "name_pl">, locale: Locale) {
-  if (locale === "pl") return i.name_pl || i.name;
-  return i.name_en || i.name;
+// Nazwa w języku kraju uczelni (Politecnico di Milano, Politechnika Warszawska), niezależnie od języka aplikacji.
+// Nazwy angielskie zostają w wyszukiwarce uczelni.
+export function institutionName(i: Pick<Institution, "name" | "name_en" | "name_pl"> & { country_code?: string }) {
+  if (i.country_code === "PL") return i.name_pl || i.name;
+  return i.name;
 }
 
-export function institutionShort(i: Pick<Institution, "name" | "name_en" | "name_pl" | "acronym">, locale: Locale) {
-  return i.acronym || institutionName(i, locale);
+// Skrót albo nazwa w języku kraju (język aplikacji nie ma znaczenia, parametr zostaje dla zgodności wywołań)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function institutionShort(i: Pick<Institution, "name" | "name_en" | "name_pl" | "acronym"> & { country_code?: string }, locale?: Locale) {
+  return i.acronym || institutionName(i);
 }
 
 // Kraje, które Node i przeglądarki nazywają inaczej (różne wersje słowników ICU) — inaczej React zgłasza niezgodność
@@ -58,25 +62,45 @@ export function semesterLabel(code: string | null | undefined, t: Dictionary) {
   return `${t.semester[m[2] as "W" | "S"]} ${start}/${String(start + 1).slice(2)}`;
 }
 
-// Zima: wrzesień–luty, lato: luty–lipiec
-function semesterRange(code: string): [Date, Date] | null {
-  const m = /^(\d{4})([WS])$/.exec(code);
-  if (!m) return null;
-  const y = Number(m[1]);
-  return m[2] === "W" ? [new Date(y, 8, 1), new Date(y + 1, 2, 1)] : [new Date(y, 1, 1), new Date(y, 7, 1)];
+// Bieżący semestr — tak samo jak current_semester() w bazie: wrzesień–luty to zima, marzec–sierpień to lato
+export function currentSemester(now = new Date()) {
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  return m >= 9 ? `${y}W` : m <= 2 ? `${y - 1}W` : `${y}S`;
 }
 
+// Kody semestrów porównują się jak tekst: "2026W" < "2027S" < "2027W"
 export type Phase = "upcoming" | "now" | "past";
 export function semesterPhase(code: string | null | undefined, now = new Date()): Phase | null {
-  const r = code ? semesterRange(code) : null;
-  if (!r) return null;
-  return now < r[0] ? "upcoming" : now >= r[1] ? "past" : "now";
+  if (!code || !/^\d{4}[WS]$/.test(code)) return null;
+  const cur = currentSemester(now);
+  return code === cur ? "now" : code > cur ? "upcoming" : "past";
 }
 
-// Etap do wyświetlenia: „jest na wymianie” wynika z semestru
+// Typ osoby wynika z jej wymian (jak person_stage() w bazie):
+// 🔍 szuka (brak wymiany), ✈️ jedzie (przyszły semestr), 📍 na wymianie (bieżący), 👑 absolwent (tylko przeszłe)
 export type Stage = Status | "abroad";
-export function stageOf(status: Status, semester: string | null | undefined): Stage {
-  return status === "going" && semesterPhase(semester) === "now" ? "abroad" : status;
+// Filtr w Ludziach: wszyscy, 🔍 szukają, ✈️ jadą, 📍 są teraz na wymianie, 👑 absolwenci
+export const PEOPLE_SEGMENTS = ["all", "searching", "going", "abroad", "been"] as const;
+// Wybór z profilu (stage_choice) wygrywa, ale tylko w semestrze, w którym go ustawiono
+export type StageChoice = { stage_choice?: string | null; stage_semester?: string | null };
+export function personStage(exchanges: { semester: string }[], choice?: StageChoice | null, now = new Date()): Stage {
+  if (choice?.stage_choice && choice.stage_semester === currentSemester(now)) return choice.stage_choice as Stage;
+  return autoStage(exchanges, now);
+}
+
+// Etap wyliczony tylko z semestrów wymian
+export function autoStage(exchanges: { semester: string }[], now = new Date()): Stage {
+  const phases = exchanges.map((x) => semesterPhase(x.semester, now));
+  if (phases.includes("now")) return "abroad";
+  if (phases.includes("upcoming")) return "going";
+  return exchanges.length ? "been" : "searching";
+}
+
+// Etap jednej wymiany
+export function exchangeStage(semester: string): Stage {
+  const phase = semesterPhase(semester);
+  return phase === "now" ? "abroad" : phase === "upcoming" ? "going" : "been";
 }
 
 export function semesterOptions(now = new Date()) {

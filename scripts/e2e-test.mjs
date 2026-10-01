@@ -231,7 +231,11 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   check("Miasto: Milan → 5 osób", r.length === 5, r.join(", "));
 }
 check("Kraj: Portugalia → Kasia (jej druga wymiana)", same(await people(zuza, { p_cc: "PT" }), ["Bot Kasia"]));
-check("Byli (absolwenci) → Kasia", same(await people(zuza, { p_seg: "been" }), ["Bot Kasia"]));
+// Typ osoby z semestrów (bieżący semestr 2026W = „na wymianie”)
+check("📍 Na wymianie teraz → Adam, Ania, Michał", same(await people(zuza, { p_seg: "abroad" }), ["Bot Adam", "Bot Ania", "Bot Michał"]));
+check("✈️ Jadą → Kasia (Lizbona latem; po Bocconi, ale ma kolejną wymianę)", same(await people(zuza, { p_seg: "going" }), ["Bot Kasia"]));
+check("🔍 Szukają → Giulia, Obcy (bez wymiany)", same(await people(zuza, { p_seg: "searching" }), ["Bot Giulia", "Bot Obcy"]));
+check("👑 Absolwenci → nikt z botów (każdy ma bieżącą albo przyszłą wymianę)", same(await people(zuza, { p_seg: "been" }), []));
 check("Tylko z mojej uczelni (SGH) → Adam, Kasia", same(await people(zuza, { p_home_only: true }), ["Bot Adam", "Bot Kasia"]));
 check("Tylko z mojej uczelni działa dla drugiej uczelni Kasi (UW)", (await people(ania, { p_home_only: true })).includes("Bot Kasia"));
 check("Pasja: kawa → Kasia", same(await people(zuza, { p_passion: "coffee" }), ["Bot Kasia"]));
@@ -261,6 +265,44 @@ check("Uczelnia macierzysta + wydział liczą się razem: SGH + „Nauk Ekonom�
   check("Wydziały UW: 25 oficjalnych", uwFac.length >= 25, `${uwFac.length}`);
 }
 check("Chcą być buddy → Giulia (lokalna), Kasia (absolwentka)", same(await people(zuza, { p_buddy: true }), ["Bot Giulia", "Bot Kasia"]));
+
+section("Mieszkania");
+{
+  const day = (d) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
+  const room = (b, city, cc) => b.db.from("rooms").insert({ author_id: b.id, country_code: cc, city, title: `Pokój testowy ${b.name}`, price: 600, available_from: day(90) }).select("id").single();
+  const z = await room(zuza, "Milan", "IT");
+  check("Zuza (wymiana w Mediolanie) wystawia pokój w Mediolanie", !z.error && z.data?.id, z.error?.message);
+  const o = await room(obcy, "Milan", "IT");
+  check("Obcy (bez wymiany ani uczelni w Mediolanie) nie może wystawić pokoju w Mediolanie", !!o.error);
+  const k = await room(obcy, "Krakow", "PL");
+  check("…ale może w Krakowie, gdzie studiuje (UJ)", !k.error && k.data?.id, k.error?.message);
+  const { data: seen } = await adam.db.from("rooms").select("id").eq("id", z.data?.id);
+  check("Inni widzą wystawiony pokój", seen?.length === 1);
+  const { data: hijack } = await adam.db.from("rooms").update({ price: 1 }).eq("id", z.data?.id).select("id");
+  check("Nikt poza autorem nie zmieni ogłoszenia", !hijack?.length);
+
+  await admin.from("profiles").update({ looking_for_housing: true }).eq("id", adam.id);
+  const { data: fm } = await zuza.db.rpc("flatmate_seekers", { p_cc: "IT", p_city: "Milan" });
+  check("Współlokatorzy w Mediolanie: Adam (🏠, wymiana w Mediolanie)", (fm ?? []).some((x) => x.id === adam.id));
+  const { data: fmK } = await zuza.db.rpc("flatmate_seekers", { p_cc: "PL", p_city: "Krakow" });
+  check("…a w Krakowie Adama nie ma", !(fmK ?? []).some((x) => x.id === adam.id));
+
+  await admin.from("profiles").update({ checks_housing: true }).eq("id", giulia.id);
+  const { data: ch } = await zuza.db.rpc("housing_checkers", { p_cc: "IT", p_city: "Milan" });
+  check("Sprawdzający w Mediolanie: Giulia (studiuje tam i się zgłosiła)", (ch ?? []).some((x) => x.id === giulia.id));
+  const ok = await zuza.db.from("check_requests").insert({ requester_id: zuza.id, checker_id: giulia.id, country_code: "IT", city: "Milan", details: "Via Pascoli 12, czwartek 18:00" });
+  check("Zuza prosi Giulię o sprawdzenie mieszkania", !ok.error, ok.error?.message);
+  const bad = await zuza.db.from("check_requests").insert({ requester_id: zuza.id, checker_id: adam.id, country_code: "IT", city: "Milan", details: "Via Pascoli 12" });
+  check("Nie można prosić kogoś, kto nie zgłosił się do sprawdzania", !!bad.error);
+  const { data: theirs } = await giulia.db.from("check_requests").select("id, status").eq("checker_id", giulia.id);
+  check("Giulia widzi prośbę", theirs?.length === 1 && theirs[0].status === "pending");
+  const { data: peek } = await adam.db.from("check_requests").select("id");
+  check("Osoby trzecie nie widzą cudzych próśb", !peek?.length);
+  const { data: acc } = await giulia.db.from("check_requests").update({ status: "accepted" }).eq("id", theirs?.[0]?.id).select("status");
+  check("Giulia przyjmuje prośbę", acc?.[0]?.status === "accepted");
+  const { data: cheat } = await zuza.db.from("check_requests").update({ status: "done" }).eq("requester_id", zuza.id).select("id");
+  check("Proszący nie oznaczy sam „sprawdzone”", !cheat?.length);
+}
 
 section("Grupy i czat grupowy");
 const { data: gid, error: jErr } = await zuza.db.rpc("join_group", { p_kind: "route", p_exchange_id: byKind.route.exchange_id, p_home_id: byKind.route.home_id });
@@ -468,7 +510,7 @@ section("Zdjęcia profilowe");
 section("Ekrany aplikacji (renderowanie na serwerze)");
 async function page(bot, path, expect) {
   try {
-    const res = await fetch(APP + path, { headers: { cookie: bot.cookie, "accept-language": "pl-PL,pl;q=0.9" }, redirect: "manual" });
+    const res = await fetch(APP + path, { headers: { cookie: `${bot.cookie}; lang=pl`, "accept-language": "pl-PL,pl;q=0.9" }, redirect: "manual" });
     const html = res.status === 200 ? await res.text() : "";
     const broken = /Application error|Unhandled Runtime Error|__next_error__/.test(html);
     const lacking = (expect ?? []).filter((e) => !html.includes(e));
@@ -482,18 +524,24 @@ async function page(bot, path, expect) {
   const { data: milan } = await zuza.db.from("place_photos").select("url, author, license, source_url").eq("country_code", "IT").eq("city", "Milan").maybeSingle();
   check("Zdjęcie Mediolanu z Commons: wolna licencja, autor i link do źródła", !!milan && /^(CC0|Public domain|CC BY)/i.test(milan.license) && !!milan.author && milan.source_url.startsWith("https://commons.wikimedia.org/"), JSON.stringify(milan));
 }
-await page(zuza, "/roj", ["SGH → Bocconi", "Polacy · Bocconi", "Bot Giulia", "Fot."]);
+await page(zuza, "/roj", ["Polacy · Bocconi", "Bot Giulia", "Fot."]);
 await page(giulia, "/roj", ["Przyjezdni u Ciebie", "Wszyscy · Bocconi"]);
 await page(obcy, "/roj");
 await page(zuza, "/ludzie", ["Bot Kasia"]);
-await page(zuza, `/ludzie?seg=been&hu=${SGH.id}`, ["Bot Kasia"]);
+await page(zuza, `/ludzie?seg=going&hu=${SGH.id}`, ["Bot Kasia"]);
 await page(zuza, "/ludzie?ex=all&cc=IT&city=Milan", ["Bot Michał"]);
-await page(kasia, "/roj", ["Bocconi", "Lizbona", "Alumni · Warszawa"]);
+await page(kasia, "/roj", ["Bocconi", "Lizbona"]);
 await page(zuza, `/ludzie?ex=all&hu=${UW.id}&field=ekonomicznych`, ["Bot Kasia"]);
 await page(zuza, `/u/${kasia.id}`, ["Bot Kasia"]);
+await page(zuza, "/mieszkania", ["Mediolan", "Pokój testowy Bot Zuza"]);
+await page(zuza, "/mieszkania?cc=IT&city=Milan&tab=flatmates", ["Bot Adam"]);
+await page(zuza, "/mieszkania?cc=IT&city=Milan&tab=check", ["Bot Giulia", "Moje prośby o sprawdzenie"]);
+await page(zuza, "/mieszkania/nowy", ["Pokój do przejęcia"]);
+await page(giulia, "/czaty", ["Prośby o sprawdzenie mieszkania"]);
 await page(zuza, `/grupy/${gid}`, ["Hej, szukamy razem mieszkania?"]);
 await page(obcy, `/grupy/${gid}`);
-await page(zuza, "/wydarzenia", ["Zjazd testowy absolwentów"]);
+await page(zuza, "/wydarzenia", ["Mediolan", "Inne miasto", "Online Q"]);
+await page(zuza, "/wydarzenia?cc=PL&city=Warsaw", ["Zjazd testowy absolwentów"]);
 await page(zuza, "/wydarzenia?tab=online");
 await page(zuza, "/wydarzenia/nowe");
 await page(obcy, "/grupy");
@@ -542,7 +590,7 @@ section("Wersja angielska (czy nic nie zostało po polsku)");
     check(`EN ${path}`, res.status === 200 && html.includes('lang="en"') && leaks.length === 0, res.status !== 200 ? `HTTP ${res.status}` : leaks.slice(0, 4).join(" | ") || "brak lang=en");
   };
   for (const path of ["/", "/login", "/regulamin", "/prywatnosc"]) await pageEn(null, path);
-  for (const path of ["/roj", "/ludzie", "/ludzie?seg=been&buddy=1", "/grupy", "/grupy?tab=city&cc=ES&city=Madrid&sem=2027S", "/wydarzenia", "/wydarzenia/nowe", "/czaty", "/profil", "/onboarding"])
+  for (const path of ["/roj", "/ludzie", "/ludzie?seg=been&buddy=1", "/grupy", "/grupy?tab=city&cc=ES&city=Madrid&sem=2027S", "/wydarzenia", "/wydarzenia/nowe", "/mieszkania", "/mieszkania?cc=IT&city=Milan&tab=check", "/mieszkania/nowy", "/czaty", "/profil", "/onboarding"])
     await pageEn(zuza, path);
   await pageEn(zuza, `/u/${kasia.id}`);
   await pageEn(zuza, `/grupy/${gid}`);

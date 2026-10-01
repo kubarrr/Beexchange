@@ -9,12 +9,13 @@ import { saveProfile } from "@/app/actions/bx";
 import { Flag, Switch } from "@/components/bx";
 import { InstitutionPicker } from "@/components/InstitutionPicker";
 import { AvatarUpload } from "@/components/AvatarUpload";
-import { semesterLabel, semesterOptions, semesterPhase, type Institution } from "@/lib/domain";
+import { autoStage, exchangeStage, semesterLabel, semesterOptions, semesterPhase, type Institution, type Stage } from "@/lib/domain";
+import { StageChip } from "@/components/PersonCard";
 import { dictionaries, PASSION_KEYS, type Locale } from "@/lib/i18n/dictionaries";
-import { DEGREES, LANGUAGE_CODES, LANGUAGE_FLAGS, LEVELS, PASSION_EMOJI, languageName, parseLanguage, parseStudy, type Degree, type Level } from "@/lib/profile-options";
+import { DEGREES, LANGUAGE_CODES, LANGUAGE_FLAGS, LEVELS, PASSION_EMOJI, STAGE_EMOJI, languageName, parseLanguage, parseStudy, type Degree, type Level } from "@/lib/profile-options";
 
 export type HomeEntry = { inst: Institution | null; field: string; study: string; faculty: string };
-export type ExchangeEntry = { inst: Institution | null; semester: string | null; status: "going" | "been" };
+export type ExchangeEntry = { inst: Institution | null; semester: string | null };
 export type ProfileFormInitial = {
   full_name: string;
   avatar_url: string | null;
@@ -25,13 +26,20 @@ export type ProfileFormInitial = {
   bio: string;
   open_to_questions: boolean;
   wants_buddy: boolean;
+  looking_for_housing: boolean;
+  helps_departure: boolean;
+  checks_housing: boolean;
+  stage_choice: Stage | null;
 };
 
-type Stage = "searching" | "going" | "abroad" | "been";
 const STAGE_ICONS = { searching: Compass, going: Luggage, abroad: MapPinned, been: GraduationCap } as const;
 
-function semestersFor(status: "going" | "been", current: string | null) {
-  const list = semesterOptions().filter((c) => (status === "going" ? semesterPhase(c) !== "past" : semesterPhase(c) !== "upcoming"));
+// W onboardingu zawężamy semestry do wybranego etapu; w edycji profilu pokazujemy wszystkie
+function semestersFor(stage: Stage | null, current: string | null) {
+  const list = semesterOptions().filter((c) => {
+    const phase = semesterPhase(c);
+    return stage === "going" ? phase === "upcoming" : stage === "abroad" ? phase === "now" : stage === "been" ? phase === "past" : true;
+  });
   return current && !list.includes(current) ? [current, ...list] : list;
 }
 
@@ -63,12 +71,16 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         full_name: p.full_name,
         avatar_url: p.avatar_url,
         homes: p.homes.filter((h) => h.inst).map((h) => ({ institution_id: h.inst!.id, field_of_study: h.field, study: h.study, faculty: h.faculty })),
-        exchanges: p.exchanges.filter((x) => x.inst && x.semester).map((x) => ({ institution_id: x.inst!.id, semester: x.semester!, status: x.status })),
+        exchanges: p.exchanges.filter((x) => x.inst && x.semester).map((x) => ({ institution_id: x.inst!.id, semester: x.semester! })),
         passions: p.passions,
         languages: p.languages,
         bio: p.bio,
         open_to_questions: p.open_to_questions,
         wants_buddy: p.wants_buddy,
+        looking_for_housing: p.looking_for_housing,
+        helps_departure: p.helps_departure,
+        checks_housing: p.checks_housing,
+        stage_choice: p.stage_choice,
       });
       if (!res.ok) {
         setError(res.error);
@@ -133,34 +145,21 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
     </div>
   );
 
-  const exchangeEditor = (x: ExchangeEntry, i: number, fixedStatus = false) => (
+  const exchangeEditor = (x: ExchangeEntry, i: number, onlyStage: Stage | null = null) => (
     <div key={i} className={`space-y-4 ${i > 0 ? "border-t-[1.5px] border-line pt-5" : ""}`}>
-      <div className="flex items-center gap-2">
-        {!fixedStatus && (
-          <div className="grid flex-1 grid-cols-2 gap-1 rounded-2xl bg-sand p-1">
-            {(["going", "been"] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setExchange(i, { status: s, semester: x.semester && semestersFor(s, null).includes(x.semester) ? x.semester : null })}
-                className={`min-h-10 rounded-xl text-sm font-semibold ${x.status === s ? "bg-ink text-honey" : ""}`}
-              >
-                {s === "going" ? t.profile.exGoing : t.profile.exBeen}
-              </button>
-            ))}
-          </div>
-        )}
-        {(mode === "edit" || i > 0) && (
+      {(mode === "edit" || i > 0) && (
+        <div className="flex items-center justify-between gap-2">
+          {x.semester ? <StageChip stage={exchangeStage(x.semester)} t={t} /> : <span />}
           <button type="button" aria-label={t.common.clear} onClick={() => set({ exchanges: p.exchanges.filter((_, j) => j !== i) })} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-sand hover:text-red-700">
             <Trash2 size={17} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
       <InstitutionPicker locale={locale} value={x.inst} onChange={(inst) => setExchange(i, { inst })} />
       <div className="space-y-2">
         <span className="label-caps">{t.onboarding.semesterLabel}</span>
         <div className="flex flex-wrap gap-2">
-          {semestersFor(x.status, x.semester).map((code) => (
+          {semestersFor(onlyStage, x.semester).map((code) => (
             <button key={code} type="button" onClick={() => setExchange(i, { semester: code })} className={`chip ${x.semester === code ? "chip-on" : ""}`}>
               {semesterLabel(code, t)}
               {semesterPhase(code) === "now" && <span className="ml-1.5 h-2 w-2 rounded-full bg-honey-deep" aria-hidden="true" />}
@@ -176,7 +175,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
       {p.exchanges.length === 0 && <p className="rounded-2xl bg-sand p-4 text-sm">{t.profile.noExchanges}</p>}
       {p.exchanges.map((x, i) => exchangeEditor(x, i))}
       {p.exchanges.length < 6 && exchangesValid && (
-        <button type="button" onClick={() => set({ exchanges: [...p.exchanges, { inst: null, semester: null, status: "going" }] })} className="btn-outline w-full border-dashed">
+        <button type="button" onClick={() => set({ exchanges: [...p.exchanges, { inst: null, semester: null }] })} className="btn-outline w-full border-dashed">
           <Plus size={16} /> {t.profile.addExchange}
         </button>
       )}
@@ -241,6 +240,43 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
     </div>
   );
 
+  // Przełączniki: 🏠 przed wyjazdem i na miejscu, 🧸 dla osób, które nadal studiują (także po wymianie), 📋 dla osób z wymianą
+  const autoFormStage = autoStage(p.exchanges.filter((x) => x.semester).map((x) => ({ semester: x.semester! })));
+  const formStage = p.stage_choice ?? autoFormStage;
+  const toggles = [
+    (formStage === "going" || formStage === "abroad") && { key: "looking_for_housing" as const, label: t.profile.housing, hint: t.profile.housingHint },
+    p.homes.some((h) => h.inst && h.study !== "graduate") && { key: "wants_buddy" as const, label: t.profile.buddy, hint: t.profile.buddyHint },
+    p.exchanges.some((x) => x.inst && x.semester) && { key: "helps_departure" as const, label: t.profile.helper, hint: t.profile.helperHint },
+    { key: "checks_housing" as const, label: t.profile.checker, hint: t.profile.checkerHint },
+  ].filter(Boolean) as { key: "looking_for_housing" | "wants_buddy" | "helps_departure" | "checks_housing"; label: string; hint: string }[];
+
+  // Etap: domyślnie z semestrów; można zmienić (np. „już jestem na miejscu”)
+  const stageSection = (
+    <div className="space-y-2">
+      <span className="label-caps">{t.profile.stageTitle}</span>
+      <div className="grid grid-cols-2 gap-2">
+        {(["searching", "going", "abroad", "been"] as Stage[]).map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-pressed={formStage === s}
+            onClick={() => set({ stage_choice: s === autoFormStage ? null : s })}
+            className={`flex min-h-12 items-center gap-2 rounded-2xl border-2 px-3 text-left text-sm font-semibold ${formStage === s ? "border-ink bg-honey" : "border-line bg-white"}`}
+          >
+            <span aria-hidden="true" className="text-lg">
+              {STAGE_EMOJI[s]}
+            </span>
+            <span className="min-w-0 leading-tight">
+              {t.statusBadge[s]}
+              {s === autoFormStage && <span className="block text-[11px] font-normal text-muted">{t.profile.stageAuto}</span>}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-muted">{t.profile.stageHint}</p>
+    </div>
+  );
+
   const youSection = (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4">
@@ -289,15 +325,15 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
           </span>
           <Switch on={p.open_to_questions} />
         </button>
-        {(
-          <button type="button" onClick={() => set({ wants_buddy: !p.wants_buddy })} aria-pressed={p.wants_buddy} className="flex min-h-14 w-full items-center gap-3 text-left">
+        {toggles.map((tg) => (
+          <button key={tg.key} type="button" onClick={() => set({ [tg.key]: !p[tg.key] })} aria-pressed={p[tg.key]} className="flex min-h-14 w-full items-center gap-3 text-left">
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold">{t.profile.buddy}</span>
-              <span className="block text-xs text-muted">{t.profile.buddyHint}</span>
+              <span className="block font-semibold">{tg.label}</span>
+              <span className="block text-xs text-muted">{tg.hint}</span>
             </span>
-            <Switch on={p.wants_buddy} />
+            <Switch on={p[tg.key]} />
           </button>
-        )}
+        ))}
       </div>
     </div>
   );
@@ -328,7 +364,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         exchanges:
           s === "searching"
             ? []
-            : [{ inst: p.exchanges[0]?.inst ?? null, status: s === "been" ? "been" : "going", semester: s === "abroad" ? now : null }],
+            : [{ inst: p.exchanges[0]?.inst ?? null, semester: s === "abroad" ? now : null }],
       });
     };
 
@@ -380,7 +416,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
             </div>
           )}
           {current === "home" && homeEditor(p.homes[0], 0)}
-          {current === "exchange" && p.exchanges[0] && exchangeEditor(p.exchanges[0], 0, true)}
+          {current === "exchange" && p.exchanges[0] && exchangeEditor(p.exchanges[0], 0, stage)}
           {current === "you" && youSection}
           {current !== "stage" && current !== "you" && <p className="mt-4 text-xs text-muted">{t.profile.moreLater}</p>}
         </div>
@@ -412,6 +448,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         <section className="space-y-3">
           <h2 className="display text-xl">{t.profile.exchanges}</h2>
           {exchangesSection}
+          {stageSection}
         </section>
         {errorBox}
         <button type="button" onClick={submit} disabled={pending || !p.homes[0]?.inst || !p.full_name.trim() || !exchangesValid} className="btn-primary sticky bottom-24 min-h-14 w-full text-lg md:bottom-4">

@@ -10,7 +10,7 @@ export function EventFilters({ locale, cc, city, places }: { locale: Locale; cc:
   const t = dictionaries[locale];
   const router = useRouter();
   const go = (nextCc: string, nextCity: string) => {
-    const sp = new URLSearchParams({ tab: "all" });
+    const sp = new URLSearchParams({ tab: "other" });
     if (nextCc) sp.set("cc", nextCc);
     if (nextCity) sp.set("city", nextCity);
     router.push(`/wydarzenia?${sp.toString()}`);

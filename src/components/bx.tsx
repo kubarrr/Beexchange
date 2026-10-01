@@ -47,7 +47,7 @@ export function InstLine({ inst, locale, extra }: { inst: Institution; locale: L
     <span className="flex min-w-0 items-center gap-3">
       <InstBadge inst={inst} />
       <span className="flex min-w-0 flex-col">
-        <span className="truncate font-bold">{institutionName(inst, locale)}</span>
+        <span className="truncate font-bold">{institutionName(inst)}</span>
         <span className="truncate text-[13px] text-muted">
           {cityName(inst.city, locale)}
           {extra ? ` · ${extra}` : ""}

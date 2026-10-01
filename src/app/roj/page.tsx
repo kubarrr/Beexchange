@@ -7,23 +7,19 @@ import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { PhotoBanner, loadPlacePhotos, placeKey } from "@/components/PlacePhoto";
 import { requireProfile } from "@/lib/auth";
 import { cityName } from "@/lib/cities";
-import { institutionShort, semesterLabel, semesterPhase, stageOf, type Institution } from "@/lib/domain";
-import { groupTitle, groupWhy, type GroupKind, type Suggestion } from "@/lib/groups";
+import { exchangeStage, institutionName, personStage, semesterLabel, semesterPhase, type Institution } from "@/lib/domain";
+import { PERSON_SELECT, PersonCard, personBadges, sortExchanges, type Person } from "@/components/PersonCard";
+import { ACTIVE_GROUP_KINDS, groupTitle, groupWhy, type GroupKind, type Suggestion } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 
 export const generateMetadata = localizedTitle((t) => t.nav.swarm);
 
 type Mini = { id: string; full_name: string; avatar_url: string | null };
-type PastExchange = { institution_id: number; semester: string; status: string; institution: Institution };
-type BuddyProfile = Mini & { home: Institution | null; exchanges?: PastExchange[] };
-type Buddy = BuddyProfile & { local: boolean; was: PastExchange | null };
 type Row = Suggestion & { others: number };
 
-// Kolejność grup w ramach wymiany: przed wyjazdem najpierw ta sama trasa i rodacy,
-// po powrocie najpierw grupy absolwentów
-const UPCOMING_ORDER: GroupKind[] = ["route", "nat_uni", "nat_city", "semester", "city", "nat_country", "alumni", "alumni_local"];
-const PAST_ORDER: GroupKind[] = ["alumni", "alumni_local", "route", "nat_uni", "nat_city", "semester", "city", "nat_country"];
+// Kolejność grup przy wymianie: najpierw rodacy na uczelni i w mieście, potem wszyscy, na końcu kraj
+const GROUP_ORDER: GroupKind[] = ["nat_uni", "nat_city", "semester", "city", "nat_country"];
 const VISIBLE_PER_EXCHANGE = 2;
 
 export default async function SwarmPage() {
@@ -31,27 +27,20 @@ export default async function SwarmPage() {
   const { t, locale } = await getDictionary();
   const firstName = me.full_name.split(" ")[0] || "";
 
-  const exInsts = me.exchanges.map((x) => x.institution_id);
+  const myStage = personStage(me.exchanges, me);
+  // Buddy szukam tylko na uczelniach wymian, które są przede mną albo trwają
+  const exInsts = me.exchanges.filter((x) => semesterPhase(x.semester) !== "past").map((x) => x.institution_id);
   const homeInsts = me.homes.map((h) => h.institution_id);
-  const INST = "id, name, name_en, name_pl, acronym, country_code, city";
-  const BUDDY_FIELDS = `id, full_name, avatar_url, wants_buddy, home:institutions!profiles_home_institution_id_fkey(${INST})`;
+  // Drugie dołączenie profile_homes (alias „at”) tylko do filtrowania po uczelni
+  const bySchool = (ids: number[], flag: "wants_buddy" | "helps_departure") =>
+    supabase.from("profiles").select(`${PERSON_SELECT}, at:profile_homes!inner(institution_id)`).in("at.institution_id", ids).eq(flag, true).neq("id", userId).limit(30);
 
-  const [{ data: sugg }, { data: homeBuddies }, { data: localBuddies }, { data: sent }] = await Promise.all([
+  const [{ data: sugg }, { data: localRows0 }, { data: helperRows }, { data: sent }] = await Promise.all([
     supabase.rpc("group_suggestions"),
-    // Buddy z moich uczelni (pokazujemy tych, którzy już byli na wymianie)
-    homeInsts.length
-      ? supabase
-          .from("profile_homes")
-          .select(`profiles!inner(${BUDDY_FIELDS}, exchanges(institution_id, semester, status, institution:institutions(${INST})))`)
-          .in("institution_id", homeInsts)
-          .eq("profiles.wants_buddy", true)
-          .neq("user_id", userId)
-          .limit(40)
-      : Promise.resolve({ data: [] }),
-    // Lokalni studenci moich uczelni zagranicznych (np. Włosi z PoliMi)
-    exInsts.length
-      ? supabase.from("profile_homes").select(`profiles!inner(${BUDDY_FIELDS})`).in("institution_id", exInsts).eq("profiles.wants_buddy", true).neq("user_id", userId).limit(6)
-      : Promise.resolve({ data: [] }),
+    // 🧸 Lokalni studenci uczelni, na które jadę (np. Włosi z PoliMi)
+    exInsts.length ? bySchool(exInsts, "wants_buddy") : Promise.resolve({ data: [] }),
+    // 📋 Osoby z mojej uczelni, które pomogą przed wyjazdem (nie pokazujemy absolwentom)
+    homeInsts.length && (myStage === "searching" || myStage === "going") ? bySchool(homeInsts, "helps_departure") : Promise.resolve({ data: [] }),
     supabase.from("buddy_requests").select("to_user").eq("from_user", userId),
   ]);
 
@@ -62,7 +51,7 @@ export default async function SwarmPage() {
 
   const seen = new Set<string>();
   const all: Row[] = ((sugg ?? []) as Suggestion[])
-    .filter((s) => s.key && !seen.has(s.key) && seen.add(s.key))
+    .filter((s) => s.key && ACTIVE_GROUP_KINDS.includes(s.kind) && !seen.has(s.key) && seen.add(s.key))
     .map((s) => ({ ...s, others: s.candidates - (s.self_counted ? 1 : 0) }))
     .filter((s) => s.others > 0 || s.members > (s.is_member ? 1 : 0));
 
@@ -83,20 +72,20 @@ export default async function SwarmPage() {
 
   const exchangeRows = all.filter((s) => !s.is_local);
   const localRows = all.filter((s) => s.is_local);
-  const isPast = (x: { status: string; semester: string }) => x.status === "been" || semesterPhase(x.semester) === "past";
-  const sections = me.exchanges.map((x) => {
-    const order = isPast(x) ? PAST_ORDER : UPCOMING_ORDER;
-    const rank = (k: GroupKind) => order.indexOf(k) + 1 || 99;
-    return { x, groups: exchangeRows.filter((s) => s.exchange_id === x.id).sort((a, b) => rank(a.kind) - rank(b.kind)) };
-  });
+  const rank = (k: GroupKind) => GROUP_ORDER.indexOf(k) + 1 || 99;
+  const sections = sortExchanges(me.exchanges).map((x) => ({
+    x,
+    groups: exchangeRows.filter((s) => s.exchange_id === x.id).sort((a, b) => rank(a.kind) - rank(b.kind)),
+  }));
   // Najlepsze dopasowanie: pierwsza grupa najbliższej wymiany (wymiany przed wyjazdem są na początku listy)
-  const best = sections.find((sec) => sec.groups.length)?.groups[0];
+  // Najlepsze dopasowanie tylko dla wymian przed nami i trwających — absolwentom nic nie polecamy
+  const upcoming = sections.filter((sec) => semesterPhase(sec.x.semester) !== "past");
+  const best = upcoming.find((sec) => sec.groups.length)?.groups[0];
 
   let faces: Mini[] = [];
   if (best?.institution_id) {
     let q = supabase.from("exchanges").select("profiles!inner(id, full_name, avatar_url)").eq("institution_id", best.institution_id).neq("user_id", userId).limit(4);
-    if (best.kind === "alumni") q = q.eq("status", "been");
-    else if (best.semester) q = q.eq("semester", best.semester);
+    if (best.semester) q = q.eq("semester", best.semester);
     faces = ((await q).data ?? []).map((r) => r.profiles as unknown as Mini);
   }
 
@@ -106,23 +95,15 @@ export default async function SwarmPage() {
   );
 
   const sentTo = new Set((sent ?? []).map((r) => r.to_user));
-  const localList = new Map<string, Buddy>();
-  for (const r of localBuddies ?? []) {
-    const p = r.profiles as unknown as BuddyProfile;
-    localList.set(p.id, { ...p, local: true, was: null });
-  }
-  // Z mojej uczelni: tylko ci, którzy już byli na wymianie; najpierw ci, którzy byli tam, dokąd ja jadę
-  const homeList = new Map<string, Buddy>();
-  for (const r of homeBuddies ?? []) {
-    const p = r.profiles as unknown as BuddyProfile;
-    if (localList.has(p.id) || homeList.has(p.id)) continue;
-    const past = (p.exchanges ?? []).filter(isPast).sort((a, b) => b.semester.localeCompare(a.semester));
-    const was = past.find((e) => exInsts.includes(e.institution_id)) ?? past[0];
-    if (was) homeList.set(p.id, { ...p, local: false, was });
-  }
-  const wentWhereIGo = (b: Buddy) => Number(!!b.was && exInsts.includes(b.was.institution_id));
-  const homeBuddyList = [...homeList.values()].sort((a, b) => wentWhereIGo(b) - wentWhereIGo(a)).slice(0, 6);
-  const localBuddyList = [...localList.values()].slice(0, 6);
+  const unique = (rows: unknown[] | null) => [...new Map(((rows ?? []) as Person[]).map((p) => [p.id, p])).values()];
+  // 🧸 tylko obecni studenci (absolwenci nie są buddy)
+  const localBuddyList = unique(localRows0).filter((p) => personBadges(p).buddy).slice(0, 6);
+  // 📋 tylko osoby po wymianie albo z wybraną wymianą; najpierw ci, którzy byli tam, dokąd jadę
+  const wentWhereIGo = (p: Person) => Number(p.exchanges.some((x) => exInsts.includes(x.institution.id)));
+  const helperList = unique(helperRows)
+    .filter((p) => p.exchanges.length > 0 && !localBuddyList.some((b) => b.id === p.id))
+    .sort((a, b) => wentWhereIGo(b) - wentWhereIGo(a))
+    .slice(0, 6);
 
   const action = (s: Row, dark = false) =>
     s.is_member && s.group_id ? (
@@ -159,46 +140,15 @@ export default async function SwarmPage() {
     );
   };
 
-  const buddyRow = (b: Buddy) => (
-    <div key={b.id} className="flex items-center gap-3">
-      <Link href={`/u/${b.id}`} className="rounded-full ring-2 ring-ink">
-        <Avatar name={b.full_name} url={b.avatar_url} size={48} />
-      </Link>
-      <div className="min-w-0 flex-1">
-        <Link href={`/u/${b.id}`} className="block truncate font-bold hover:underline">
-          {b.full_name}
-        </Link>
-        <p className="flex min-w-0 items-center gap-1.5 text-[13px]">
-          {b.local ? (
-            <>
-              <Flag code={b.home?.country_code} className="h-3 w-[18px]" />
-              <span className="truncate">
-                {t.groups.local} · {b.home ? institutionShort(b.home, locale) : ""}
-              </span>
-            </>
-          ) : (
-            b.was && (
-              <>
-                <span className="shrink-0">{t.swarm.wasAt}</span>
-                <Flag code={b.was.institution.country_code} className="h-3 w-[18px]" />
-                <span className="truncate">
-                  {institutionShort(b.was.institution, locale)} · {semesterLabel(b.was.semester, t)}
-                </span>
-              </>
-            )
-          )}
-        </p>
-      </div>
-      {sentTo.has(b.id) ? (
-        <span className="rounded-xl border-2 border-ink px-3 py-2 text-xs font-bold">{t.swarm.buddySent}</span>
-      ) : (
-        <form action={requestBuddy}>
-          <input type="hidden" name="user_id" value={b.id} />
-          <button className="btn-honey min-h-10 bg-ink text-honey hover:bg-black">{t.swarm.askBuddy}</button>
-        </form>
-      )}
-    </div>
-  );
+  const askBuddy = (id: string) =>
+    sentTo.has(id) ? (
+      <span className="rounded-xl border-2 border-ink px-3 py-2 text-xs font-bold">{t.swarm.buddySent}</span>
+    ) : (
+      <form action={requestBuddy}>
+        <input type="hidden" name="user_id" value={id} />
+        <button className="btn-honey min-h-10 bg-ink text-honey hover:bg-black">{t.swarm.askBuddy}</button>
+      </form>
+    );
 
   const discoverCard = (
     <Link href="/grupy" className="panel flex items-center gap-3.5 p-4 hover:border-ink">
@@ -221,6 +171,16 @@ export default async function SwarmPage() {
       </div>
 
       {discoverCard}
+
+      {myStage === "been" && !(me.helps_departure && me.checks_housing) && (
+        <Link href="/profil" className="block rounded-[26px] bg-ink p-5 text-cream">
+          <p className="display text-xl">👑 {t.swarm.helpTitle}</p>
+          <p className="mt-1 text-sm text-mist">{t.swarm.helpLead}</p>
+          <span className="btn-honey mt-4 min-h-11">
+            {t.swarm.helpCta} <ArrowRight size={16} />
+          </span>
+        </Link>
+      )}
 
       {!me.exchanges.length && (
         <div className="honeycomb rounded-[28px] bg-honey p-6">
@@ -262,7 +222,7 @@ export default async function SwarmPage() {
         </section>
       )}
 
-      {me.exchanges.length > 0 && !best && (
+      {upcoming.length > 0 && !best && (
         <EmptyState title={t.swarm.firstTitle} action={<CopyInvite label={t.swarm.invite} copiedLabel={t.swarm.copied} />}>
           {t.swarm.firstLead}
         </EmptyState>
@@ -277,13 +237,13 @@ export default async function SwarmPage() {
           <div className={`flex items-center gap-3 ${photo ? "p-3.5 pb-6 text-cream" : ""}`}>
             <InstBadge inst={x.institution} size={40} tone="honey" />
             <div className="min-w-0 flex-1">
-              <p className="truncate font-bold">{institutionShort(x.institution, locale)}</p>
+              <p className="leading-tight font-bold">{institutionName(x.institution)}</p>
               <p className={`flex items-center gap-1.5 text-[13px] ${photo ? "text-sand" : "text-muted"}`}>
                 <Flag code={x.institution.country_code} className="h-3 w-[18px]" />
                 {cityName(x.institution.city, locale)} · {semesterLabel(x.semester, t)}
               </p>
             </div>
-            <StatusBadge status={stageOf(x.status, x.semester)} t={t} />
+            <StatusBadge status={exchangeStage(x.semester)} t={t} />
           </div>
         );
         return (
@@ -320,13 +280,27 @@ export default async function SwarmPage() {
         </section>
       )}
 
-      {homeBuddyList.length + localBuddyList.length > 0 && (
+      {localBuddyList.length > 0 && (
         <section className="space-y-3 rounded-[24px] bg-honey p-4">
-          <h3 className="display text-lg">🧸 {t.swarm.buddies}</h3>
-          {localBuddyList.length > 0 && <p className="label-caps">{t.swarm.buddiesLocal}</p>}
-          {localBuddyList.map(buddyRow)}
-          {homeBuddyList.length > 0 && <p className="label-caps pt-1">{t.swarm.buddiesHome}</p>}
-          {homeBuddyList.map(buddyRow)}
+          <div>
+            <h3 className="display text-lg">🧸 {t.swarm.buddies}</h3>
+            <p className="text-[13px]">{t.swarm.buddiesLead}</p>
+          </div>
+          {localBuddyList.map((p) => (
+            <PersonCard key={p.id} p={p} locale={locale} t={t} viewerHomeIds={homeInsts} footer={askBuddy(p.id)} className="rounded-2xl bg-cream p-3" />
+          ))}
+        </section>
+      )}
+
+      {helperList.length > 0 && (
+        <section className="space-y-3 rounded-[24px] bg-sand p-4">
+          <div>
+            <h3 className="display text-lg">📋 {t.swarm.helpers}</h3>
+            <p className="text-[13px] text-muted">{t.swarm.helpersLead}</p>
+          </div>
+          {helperList.map((p) => (
+            <PersonCard key={p.id} p={p} locale={locale} t={t} viewerHomeIds={homeInsts} className="rounded-2xl bg-cream p-3" />
+          ))}
         </section>
       )}
 

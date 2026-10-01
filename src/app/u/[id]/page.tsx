@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Hexagon, MessageSquare } from "lucide-react";
+import { ArrowDown, ArrowLeft, Hexagon, MessageSquare } from "lucide-react";
 import { startConversation } from "@/app/actions";
 import { requestBuddy } from "@/app/actions/bx";
-import { BuddyBadge, Flag, InstLine, LanguageBadge, PassionEmoji, StatusBadge } from "@/components/bx";
+import { InstBadge, LanguageBadge, PassionEmoji } from "@/components/bx";
+import { StageChip, personBadges, sortExchanges, type Person as CardPerson } from "@/components/PersonCard";
 import { ReportButton } from "@/components/ReportButton";
 import { requireProfile, type ExchangeRow, type HomeRow } from "@/lib/auth";
-import { INSTITUTION_FIELDS, countryName, institutionShort, semesterLabel, stageOf, type Status } from "@/lib/domain";
+import { INSTITUTION_FIELDS, countryName, exchangeStage, institutionName, institutionShort, semesterLabel } from "@/lib/domain";
+import { cityName } from "@/lib/cities";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 import { passionLabel } from "@/lib/i18n/dictionaries";
-import { studyLabel } from "@/lib/profile-options";
+import { BUDDY_EMOJI, HELPER_EMOJI, HOUSING_EMOJI, studyLabel } from "@/lib/profile-options";
 
 export const generateMetadata = localizedTitle((t) => t.nav.profile);
 
@@ -18,13 +20,13 @@ type Person = {
   id: string;
   full_name: string;
   avatar_url: string | null;
-  status: Status;
-  semester: string | null;
   passions: string[];
   languages: string[];
   bio: string;
   open_to_questions: boolean;
   wants_buddy: boolean;
+  looking_for_housing: boolean;
+  helps_departure: boolean;
   homes: HomeRow[];
   exchanges: ExchangeRow[];
 };
@@ -37,7 +39,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
   const { data } = await supabase
     .from("profiles")
     .select(
-      `id, full_name, avatar_url, status, semester, passions, languages, bio, open_to_questions, wants_buddy,
+      `id, full_name, avatar_url, passions, languages, bio, open_to_questions, wants_buddy, looking_for_housing, helps_departure, stage_choice, stage_semester,
        homes:profile_homes(institution_id, field_of_study, faculty, study, position, institution:institutions(${INSTITUTION_FIELDS})),
        exchanges(id, institution_id, semester, status, institution:institutions(${INSTITUTION_FIELDS}))`,
     )
@@ -46,7 +48,8 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
   const p = data as unknown as Person | null;
   if (!p) notFound();
   const homes = [...p.homes].sort((a, b) => a.position - b.position);
-  const exchanges = [...p.exchanges].sort((a, b) => b.semester.localeCompare(a.semester));
+  const exchanges = sortExchanges(p.exchanges);
+  const badges = personBadges(p as unknown as CardPerson, me.homes.map((h) => h.institution_id));
 
   const isMe = p.id === userId;
   const { data: req } = isMe ? { data: null } : await supabase.from("buddy_requests").select("status").eq("from_user", userId).eq("to_user", p.id).maybeSingle();
@@ -56,13 +59,19 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
     const myHomes = new Set(me.homes.map((h) => h.institution_id));
     const myEx = new Set(me.exchanges.map((x) => x.institution_id));
     const mySem = new Set(me.exchanges.map((x) => x.semester));
-    for (const h of homes) if (myHomes.has(h.institution_id)) common.push(institutionShort(h.institution, locale));
+    // Ta sama uczelnia macierzysta albo jej/jego uczelnia to moja uczelnia wymiany (lokalny buddy)
+    for (const h of homes) if (myHomes.has(h.institution_id) || myEx.has(h.institution_id)) common.push(institutionShort(h.institution, locale));
     for (const x of exchanges) if (myEx.has(x.institution_id)) common.push(institutionShort(x.institution, locale));
     for (const x of exchanges) if (mySem.has(x.semester) && !common.includes(semesterLabel(x.semester, t))) common.push(semesterLabel(x.semester, t));
     for (const x of p.passions ?? []) if (me.passions?.includes(x)) common.push(passionLabel(t, x));
   }
-  const isBuddy = p.wants_buddy;
-  const mainHome = homes[0];
+  const isBuddy = badges.buddy;
+  // Plakietki z wyjaśnieniem, co znaczą
+  const roles = [
+    badges.housing && { emoji: HOUSING_EMOJI, label: t.person.housing, hint: t.person.housingHint },
+    badges.buddy && { emoji: BUDDY_EMOJI, label: t.people.buddy, hint: t.person.buddyHint },
+    badges.helper && !isMe && { emoji: HELPER_EMOJI, label: t.person.helper, hint: t.person.helperHint },
+  ].filter(Boolean) as { emoji: string; label: string; hint: string }[];
   const languages = Array.isArray(p.languages) ? p.languages : [];
 
   return (
@@ -81,30 +90,17 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
         <Link href="/ludzie" aria-label={t.common.back} className="absolute top-4 left-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-cream">
           <ArrowLeft size={20} strokeWidth={2.5} />
         </Link>
-        <div className="absolute top-5 right-4 flex gap-1.5">
-          <StatusBadge status={stageOf(p.status, p.semester)} t={t} />
-          {isBuddy && <BuddyBadge t={t} tone="honey" />}
-        </div>
-        <div className="absolute inset-x-5 bottom-4 text-cream">
+        <div className="absolute inset-x-5 bottom-4 space-y-2 text-cream">
           <h1 className="display text-[30px] leading-tight">{p.full_name}</h1>
-          {mainHome && (
-            <p className="text-sm text-sand">
-              {institutionShort(mainHome.institution, locale)}
-              {mainHome.faculty && ` · ${mainHome.faculty}`}
-              {mainHome.field_of_study && ` · ${mainHome.field_of_study}`}
-              {mainHome.study && ` · ${studyLabel(mainHome.study, t)}`}
-            </p>
-          )}
-          {exchanges[0] && (
-            <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm font-semibold text-honey">
-              <span aria-hidden="true">✈️</span>
-              <Flag code={exchanges[0].institution.country_code} className="h-3 w-[18px]" />
-              <span className="truncate">
-                {institutionShort(exchanges[0].institution, locale)} · {semesterLabel(exchanges[0].semester, t)}
-                {exchanges.length > 1 && ` +${exchanges.length - 1}`}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <StageChip stage={badges.stage} t={t} tone="dark" />
+            {roles.map((r) => (
+              <span key={r.emoji} className="inline-flex items-center gap-1 rounded-full bg-cream/90 px-2 py-0.5 text-[11px] font-bold text-ink">
+                <span aria-hidden="true">{r.emoji}</span>
+                {r.label}
               </span>
-            </p>
-          )}
+            ))}
+          </div>
         </div>
       </div>
 
@@ -118,30 +114,53 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
           </div>
         )}
 
-        {exchanges.length > 0 && (
-          <section className="space-y-2">
-            <h2 className="label-caps">{t.profile.exchanges}</h2>
-            {exchanges.map((x) => (
-              <Link key={x.id} href={`/ludzie?ex=${x.institution_id}`} className="panel flex items-center gap-3 p-3.5 hover:border-ink">
-                <span className="min-w-0 flex-1">
-                  <InstLine inst={x.institution} locale={locale} extra={[countryName(x.institution.country_code, locale), semesterLabel(x.semester, t)].join(" · ")} />
+        <section className="panel space-y-1 p-4">
+          {homes.map((h) => (
+            <Link key={h.institution_id} href={`/ludzie?ex=all&hu=${h.institution_id}`} className="flex items-center gap-3 rounded-2xl py-1.5 hover:bg-cream">
+              <InstBadge inst={h.institution} size={44} />
+              <span className="min-w-0 flex-1">
+                <span className="block leading-tight font-bold">{institutionName(h.institution)}</span>
+                <span className="block text-[13px] text-muted">
+                  {[cityName(h.institution.city, locale), h.faculty, h.field_of_study, studyLabel(h.study, t)].filter(Boolean).join(" · ")}
                 </span>
-                <StatusBadge status={stageOf(x.status, x.semester)} t={t} />
-              </Link>
-            ))}
-          </section>
-        )}
+              </span>
+            </Link>
+          ))}
+          {exchanges.length > 0 && (
+            <div className="flex justify-center py-0.5 text-muted">
+              <ArrowDown size={20} strokeWidth={2.5} aria-hidden="true" />
+            </div>
+          )}
+          {exchanges.map((x) => (
+            <Link key={x.id} href={`/ludzie?ex=${x.institution_id}`} className="flex items-center gap-3 rounded-2xl py-1.5 hover:bg-cream">
+              <InstBadge inst={x.institution} size={44} tone="honey" />
+              <span className="min-w-0 flex-1">
+                <span className="block leading-tight font-bold">{institutionName(x.institution)}</span>
+                <span className="block text-[13px] text-muted">
+                  {[cityName(x.institution.city, locale), countryName(x.institution.country_code, locale), semesterLabel(x.semester, t)].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              <StageChip stage={exchangeStage(x.semester)} t={t} />
+            </Link>
+          ))}
+        </section>
 
-        {homes.length > 1 && (
-          <section className="space-y-2">
-            <h2 className="label-caps">{t.profile.studies}</h2>
-            {homes.map((h) => (
-              <div key={h.institution_id} className="panel p-3.5">
-                <InstLine inst={h.institution} locale={locale} extra={[h.faculty, h.field_of_study, studyLabel(h.study, t)].filter(Boolean).join(" · ")} />
+        {roles.length > 0 && (
+          <div className="space-y-2">
+            {roles.map((r) => (
+              <div key={r.emoji} className="flex items-start gap-3 rounded-[18px] bg-sand px-4 py-3">
+                <span aria-hidden="true" className="text-xl leading-none">
+                  {r.emoji}
+                </span>
+                <span className="text-sm leading-snug">
+                  <span className="font-bold">{r.label}</span>
+                  <span className="block text-muted">{r.hint}</span>
+                </span>
               </div>
             ))}
-          </section>
+          </div>
         )}
+
 
         {!!p.passions?.length && (
           <section className="space-y-2">

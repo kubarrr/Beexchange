@@ -1,3 +1,4 @@
+import { currentSemester, type Stage } from "@/lib/domain";
 import type { MyProfile } from "@/lib/auth";
 import type { ProfileFormInitial } from "@/components/ProfileForm";
 
@@ -17,5 +18,9 @@ export function toProfileFormInitial(p: MyProfile): ProfileFormInitial {
     bio: p.bio,
     open_to_questions: p.open_to_questions,
     wants_buddy: p.wants_buddy,
+    looking_for_housing: p.looking_for_housing,
+    helps_departure: p.helps_departure,
+    checks_housing: p.checks_housing,
+    stage_choice: p.stage_choice && p.stage_semester === currentSemester() ? (p.stage_choice as Stage) : null,
   };
 }

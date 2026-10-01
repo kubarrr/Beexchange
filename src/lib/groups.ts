@@ -10,6 +10,10 @@ import type { Dictionary, Locale } from "@/lib/i18n/dictionaries";
 // alumni_local Alumni · Warszawa (z flagą kraju wymiany)
 export type GroupKind = "route" | "semester" | "alumni" | "city" | "nat_uni" | "nat_city" | "nat_country" | "alumni_local";
 
+// Grupy, które proponujemy i pokazujemy (zawsze na dany semestr). Trasa i grupy absolwentów zostają tylko
+// w czatach osób, które już do nich należą.
+export const ACTIVE_GROUP_KINDS: GroupKind[] = ["nat_uni", "nat_city", "nat_country", "semester", "city"];
+
 export type GroupInfo = {
   kind: GroupKind;
   home: Institution | null;

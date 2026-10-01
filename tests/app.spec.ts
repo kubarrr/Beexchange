@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { admin, cleanup, contextFor, inst, makeBot, setProfile, type Bot } from "./helpers";
 
 // Scenariusz jak u prawdziwych ludzi: Ania przechodzi onboarding w przeglądarce,
-// Bartek jedzie tą samą trasą, a Celina (absolwentka) chce być buddy.
+// Bartek jest tam w tym samym semestrze, a Celina (studentka Bocconi) chce być buddy dla przyjezdnych.
 test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   let ania: Bot, bartek: Bot, celina: Bot;
   let A: BrowserContext, B: BrowserContext, C: BrowserContext;
@@ -17,7 +17,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     bartek = await makeBot("bartek", "Bartek Testowy");
     celina = await makeBot("celina", "Celina Testowa");
     await setProfile(bartek, { home: SGH, ex: BOC, semester: "2026W", status: "going" });
-    await setProfile(celina, { home: SGH, ex: BOC, semester: "2025W", status: "been", buddy: true });
+    await setProfile(celina, { home: BOC, buddy: true });
     [A, B, C] = await Promise.all([contextFor(browser, ania, baseURL!), contextFor(browser, bartek, baseURL!), contextFor(browser, celina, baseURL!)]);
     [a, b, c] = await Promise.all([A.newPage(), B.newPage(), C.newPage()]);
   });
@@ -36,7 +36,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   test("Onboarding krok po kroku ze zdjęciem, pasjami i językami", async () => {
     await a.goto("/roj");
     await expect(a).toHaveURL(/\/onboarding/);
-    await a.getByRole("button", { name: "Jadę na wymianę" }).click();
+    await a.getByRole("button", { name: "Jestem teraz na wymianie" }).click();
     await a.getByRole("button", { name: "Dalej" }).click();
 
     // Uczelnia w Polsce
@@ -76,7 +76,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
 
     await expect(a).toHaveURL(/\/roj/);
     await expect(a.getByText("Najlepsze dopasowanie")).toBeVisible();
-    await expect(a.getByRole("heading", { name: /SGH → Bocconi/ })).toBeVisible();
+    await expect(a.getByRole("heading", { name: /Polacy · Bocconi/ })).toBeVisible();
     await noSideScroll(a);
     await shot(a, "04-roj");
 
@@ -141,7 +141,7 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await a.goto("/ludzie");
     await a.getByRole("button", { name: "SGH", exact: true }).click();
     await a.getByLabel("Kierunek lub wydział").fill("finansów");
-    await a.getByRole("button", { name: "Szukaj" }).click();
+    await a.getByRole("button", { name: "Szukaj", exact: true }).click();
     await expect(a).toHaveURL(new RegExp(`hu=${SGH}`));
     await expect(a.getByRole("link", { name: "Bartek Testowy" })).toBeVisible();
     await a.getByRole("button", { name: "Więcej filtrów" }).click();
@@ -190,7 +190,6 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   test("Profil: dodanie drugiej wymiany", async () => {
     await a.goto("/profil");
     await a.getByRole("button", { name: "Dodaj wymianę" }).click();
-    await a.getByRole("button", { name: "Byłem/am" }).last().click();
     await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).fill("polimi");
     await a.getByRole("button", { name: /Politecnico di Milano/ }).first().click();
     await a.getByRole("button", { name: "lato 2025/26" }).last().click();
@@ -225,6 +224,41 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
       await noSideScroll(a);
       await shot(a, name);
     }
+  });
+
+  test("Mieszkania: pokój do przejęcia i prośba o sprawdzenie", async () => {
+    await admin.from("profiles").update({ checks_housing: true }).eq("id", celina.id);
+    await a.goto("/mieszkania");
+    await expect(a.getByRole("link", { name: /Mediolan/ }).first()).toBeVisible();
+    await a.getByRole("link", { name: "Dodaj pokój" }).click();
+    await expect(a).toHaveURL(/\/mieszkania\/nowy/);
+    await a.getByLabel("Tytuł").fill("Pokój testowy przy Bocconi");
+    await a.getByLabel("Cena za miesiąc").fill("700");
+    await a.getByLabel("Dostępny od").fill("2027-02-01");
+    const photo = await sharp({ create: { width: 1200, height: 900, channels: 3, background: "#c9a227" } }).jpeg().toBuffer();
+    await a.getByLabel("Dodaj zdjęcie").setInputFiles({ name: "pokoj.jpg", mimeType: "image/jpeg", buffer: photo });
+    await a.getByRole("dialog", { name: "Dopasuj zdjęcie" }).getByRole("button", { name: "Zapisz" }).click();
+    await expect(a.locator('img[src*="/rooms/"]')).toBeVisible();
+    await a.getByRole("button", { name: "Opublikuj pokój" }).click();
+    await expect(a).toHaveURL(/\/mieszkania\?cc=IT&city=Milan&tab=rooms/);
+    const card = a.locator("article", { hasText: "Pokój testowy przy Bocconi" });
+    await expect(card).toContainText("700");
+    await expect(card.locator('img[src*="/rooms/"]')).toBeVisible();
+    await noSideScroll(a);
+    await shot(a, "14-mieszkania");
+
+    await a.getByRole("link", { name: /Sprawdzenie/ }).click();
+    await a.locator(".panel", { hasText: "Celina Testowa" }).getByRole("button", { name: "Poproś o sprawdzenie" }).click();
+    await a.getByLabel(/Link do ogłoszenia/).fill("https://example.com/oferta · oglądanie w czwartek 18:00");
+    await a.getByRole("button", { name: "Wyślij prośbę" }).click();
+    await expect(a.getByText("Prośba wysłana")).toBeVisible();
+    await shot(a, "15-sprawdzenie");
+
+    await c.goto("/czaty");
+    await expect(c.getByText(/prosi o sprawdzenie mieszkania/)).toBeVisible();
+    await c.locator("form", { has: c.locator('input[name="status"][value="accepted"]') }).getByRole("button").click();
+    await expect(c).toHaveURL(/\/wiadomosci\//);
+    await expect(c.getByText(/oglądanie w czwartek 18:00/)).toBeVisible();
   });
 
   test("Usunięcie konta", async () => {

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { answerBuddy } from "@/app/actions/bx";
+import { answerBuddy, answerCheck } from "@/app/actions/bx";
+import { cityName } from "@/lib/cities";
 import { Avatar, EmptyState, PageTitle } from "@/components/bx";
 import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
@@ -16,8 +17,15 @@ export default async function ChatsPage() {
   const { supabase, userId } = await requireProfile("/czaty");
   const { t, locale } = await getDictionary();
 
-  const [{ data: requests }, { data: memberships }, { data: conversations }, { data: unreadRows }] = await Promise.all([
+  const [{ data: requests }, { data: checks }, { data: memberships }, { data: conversations }, { data: unreadRows }] = await Promise.all([
     supabase.from("buddy_requests").select("id, created_at, from:profiles!buddy_requests_from_user_fkey(id, full_name, avatar_url)").eq("to_user", userId).eq("status", "pending"),
+    // 🔎 prośby o sprawdzenie mieszkania (nowe i przyjęte, żeby po obejrzeniu oznaczyć „sprawdzone”)
+    supabase
+      .from("check_requests")
+      .select("id, city, details, status, from:profiles!check_requests_requester_id_fkey(id, full_name, avatar_url)")
+      .eq("checker_id", userId)
+      .in("status", ["pending", "accepted"])
+      .order("created_at", { ascending: false }),
     supabase
       .from("group_members")
       .select(
@@ -76,6 +84,53 @@ export default async function ChatsPage() {
                     <input type="hidden" name="accept" value="1" />
                     <button className="btn-honey min-h-10 bg-ink text-honey hover:bg-black">{t.chats.accept}</button>
                   </form>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {!!checks?.length && (
+        <section className="space-y-2">
+          <h2 className="label-caps">{t.chats.checkRequests}</h2>
+          {checks.map((r) => {
+            const from = r.from as unknown as Person;
+            return (
+              <div key={r.id} className="space-y-2.5 rounded-3xl bg-sand p-3.5">
+                <div className="flex items-center gap-3">
+                  <Link href={`/u/${from.id}`}>
+                    <Avatar name={from.full_name} url={from.avatar_url} size={44} />
+                  </Link>
+                  <p className="min-w-0 flex-1 text-sm">
+                    <Link href={`/u/${from.id}`} className="font-bold hover:underline">
+                      {from.full_name}
+                    </Link>{" "}
+                    {t.chats.wantsCheck(cityName(r.city, locale))}
+                  </p>
+                </div>
+                <p className="rounded-2xl bg-white px-3 py-2 text-sm break-words whitespace-pre-line">{r.details}</p>
+                <div className="flex justify-end gap-2">
+                  {r.status === "pending" ? (
+                    <>
+                      <form action={answerCheck}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="status" value="declined" />
+                        <button className="btn-outline min-h-10 px-3">{t.chats.decline}</button>
+                      </form>
+                      <form action={answerCheck}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="status" value="accepted" />
+                        <button className="btn-honey min-h-10 bg-ink text-honey hover:bg-black">{t.chats.accept}</button>
+                      </form>
+                    </>
+                  ) : (
+                    <form action={answerCheck}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="status" value="done" />
+                      <button className="btn-honey min-h-10 bg-ink text-honey hover:bg-black">✓ {t.chats.markChecked}</button>
+                    </form>
+                  )}
                 </div>
               </div>
             );
