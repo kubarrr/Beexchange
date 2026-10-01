@@ -157,6 +157,9 @@ export async function createEvent(formData: FormData) {
   const startsAt = new Date(String(formData.get("starts_at_iso") ?? ""));
   if (Number.isNaN(startsAt.getTime())) throw new Error("invalid date");
   const audience = String(formData.get("audience"));
+  // Zdjęcie przyjmujemy tylko z własnego folderu w naszym Storage
+  const cover = clip(formData.get("cover_url"), 400);
+  const coverPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/events/${userId}/`;
 
   const { error } = await supabase.from("events").insert({
     title: clip(formData.get("title"), 150),
@@ -168,6 +171,7 @@ export async function createEvent(formData: FormData) {
     location: online ? null : clip(formData.get("location"), 200) || null,
     link: clip(formData.get("link"), 300) || null,
     audience: ["all", "alumni", "going"].includes(audience) ? audience : "all",
+    cover_url: cover.startsWith(coverPrefix) ? cover : null,
     created_by: userId,
   });
   if (error) throw new Error(error.message);
@@ -176,8 +180,10 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function deleteEvent(formData: FormData) {
-  const { supabase } = await requireUser("/wydarzenia");
-  await supabase.from("events").delete().eq("id", Number(formData.get("id")));
+  const { supabase, userId } = await requireUser("/wydarzenia");
+  const { data: ev } = await supabase.from("events").delete().eq("id", Number(formData.get("id"))).eq("created_by", userId).select("cover_url").maybeSingle();
+  const path = ev?.cover_url?.split("/storage/v1/object/public/events/")[1];
+  if (path) await supabase.storage.from("events").remove([path]);
   revalidatePath("/wydarzenia");
 }
 
@@ -223,6 +229,8 @@ export async function deleteAccount(formData: FormData) {
 
   const { data: files } = await supabase.storage.from("avatars").list(userId);
   if (files?.length) await supabase.storage.from("avatars").remove(files.map((f) => `${userId}/${f.name}`));
+  const { data: eventFiles } = await supabase.storage.from("events").list(userId);
+  if (eventFiles?.length) await supabase.storage.from("events").remove(eventFiles.map((f) => `${userId}/${f.name}`));
   const { error } = await supabase.rpc("delete_my_account");
   if (error) throw new Error(error.message);
   await supabase.auth.signOut();

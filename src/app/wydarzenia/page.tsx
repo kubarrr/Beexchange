@@ -3,6 +3,7 @@ import { Globe, MapPin, Plus, Trash2 } from "lucide-react";
 import { deleteEvent, toggleAttend } from "@/app/actions/bx";
 import { EmptyState, Flag, PageTitle } from "@/components/bx";
 import { LocalDate } from "@/components/LocalDate";
+import { PhotoBanner, loadPlacePhotos, placeKey as photoKey } from "@/components/PlacePhoto";
 import { cityName } from "@/lib/cities";
 import { EventFilters } from "./EventFilters";
 import { requireProfile } from "@/lib/auth";
@@ -22,6 +23,7 @@ type EventRow = {
   location: string | null;
   link: string | null;
   audience: "all" | "alumni" | "going";
+  cover_url: string | null;
   created_by: string;
   event_attendees: { user_id: string }[];
 };
@@ -45,7 +47,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
 
   const { data } = await supabase
     .from("events")
-    .select("id, title, description, starts_at, is_online, city, country_code, location, link, audience, created_by, event_attendees(user_id)")
+    .select("id, title, description, starts_at, is_online, city, country_code, location, link, audience, cover_url, created_by, event_attendees(user_id)")
     .gte("starts_at", recentCutoff())
     .order("starts_at")
     .limit(300);
@@ -63,6 +65,10 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
     events = upcoming.filter((e) => (!cc || e.country_code === cc) && (!city || (e.city ?? "").toLowerCase() === city.toLowerCase()));
   }
   events = events.slice(0, 60);
+  const photos = await loadPlacePhotos(
+    supabase,
+    events.filter((e) => !e.is_online && !e.cover_url).map((e) => ({ cc: e.country_code, city: e.city })),
+  );
 
   const tabLabel: Record<Tab, string> = { foryou: t.events.tabForYou, all: t.events.tabAll, online: t.events.tabOnline };
   const audienceTone = { all: "bg-sand", alumni: "bg-ink text-honey", going: "bg-honey" };
@@ -102,11 +108,22 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
       )}
 
       {events.map((e, i) => {
+        // Zdjęcie organizatora, a bez niego zdjęcie miasta (z podpisem autora i licencji)
+        const cityPhoto = e.is_online ? null : photos.get(photoKey(e.country_code, e.city));
+        const cover = e.cover_url ?? cityPhoto?.url;
         const going = e.event_attendees.some((a) => a.user_id === userId);
         const featured = i === 0;
         const place = e.is_online ? t.events.online : [cityName(e.city, locale), e.location].filter(Boolean).join(" · ");
         return (
-          <article key={e.id} className={featured ? "relative overflow-hidden rounded-[26px] bg-ink p-5 text-cream" : "panel p-3.5"}>
+          <article key={e.id} className={featured ? "relative overflow-hidden rounded-[26px] bg-ink p-5 text-cream" : "panel overflow-hidden p-3.5"}>
+            {cover && (
+              <PhotoBanner
+                src={cover}
+                credit={e.cover_url ? null : cityPhoto}
+                t={t}
+                className={featured ? "-mx-5 -mt-5 mb-4 h-44" : "-mx-3.5 -mt-3.5 mb-3 h-32"}
+              />
+            )}
             <div className="flex gap-3.5">
               <div className={`flex w-14 shrink-0 flex-col items-center rounded-2xl py-2 ${featured ? "bg-honey text-ink" : "border-[1.5px] border-line bg-cream"}`}>
                 <span className="text-[10px] font-bold tracking-wider">

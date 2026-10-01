@@ -5,11 +5,21 @@ import { createClient } from "@/lib/supabase/client";
 import { cityName } from "@/lib/cities";
 import { createEvent } from "@/app/actions/bx";
 import { Switch } from "@/components/bx";
-import { COUNTRY_CODES } from "@/components/InstitutionPicker";
-import { countryName } from "@/lib/domain";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
+import { EventPhoto } from "./EventPhoto";
 
-export function EventForm({ locale, defaultCountry }: { locale: Locale; defaultCountry: string }) {
+// Nazwy krajów liczy serwer: Node i przeglądarki mają różne słowniki (np. „Falklandy (Malwiny)” vs „Falklandy”)
+export function EventForm({
+  locale,
+  defaultCountry,
+  userId,
+  countries,
+}: {
+  locale: Locale;
+  defaultCountry: string;
+  userId: string;
+  countries: { c: string; n: string }[];
+}) {
   const t = dictionaries[locale];
   const [online, setOnline] = useState(false);
   // Godzinę z pola zamieniamy na czas UTC w przeglądarce, z uwzględnieniem czasu letniego/zimowego w dniu wydarzenia
@@ -57,9 +67,7 @@ export function EventForm({ locale, defaultCountry }: { locale: Locale; defaultC
           <label className="block space-y-1.5">
             <span className="label-caps">{t.events.fCountry}</span>
             <select name="country_code" value={country} onChange={(e) => setCountry(e.target.value)} className="field">
-              {COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) }))
-                .sort((a, b) => a.n.localeCompare(b.n, locale))
-                .map(({ c, n }) => (
+              {countries.map(({ c, n }) => (
                   <option key={c} value={c}>
                     {n}
                   </option>
@@ -100,10 +108,16 @@ export function EventForm({ locale, defaultCountry }: { locale: Locale; defaultC
           ))}
         </div>
       </fieldset>
-      <label className="block space-y-1.5">
-        <span className="label-caps">{t.events.fDesc}</span>
-        <textarea name="description" rows={4} className="field py-3" />
-      </label>
+      <EventPhoto locale={locale} userId={userId} />
+      <div className="space-y-1.5">
+        <label className="block space-y-1.5">
+          <span className="label-caps">{t.events.fDesc}</span>
+          <textarea name="description" rows={4} aria-describedby="event-desc-hint" className="field py-3" />
+        </label>
+        <p id="event-desc-hint" className="text-xs text-muted">
+          {t.events.fDescHint}
+        </p>
+      </div>
       <button className="btn-primary min-h-14 w-full text-lg">{t.events.fSubmit}</button>
     </form>
   );

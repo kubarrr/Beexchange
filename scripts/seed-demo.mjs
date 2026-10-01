@@ -193,10 +193,10 @@ const events = await must(
   admin
     .from("events")
     .insert([
-      { title: "Zjazd Polimi · lato 2025/26", description: "Spotkanie wszystkich, którzy byli na Politecnico w lecie. Przyjdźcie też, jeśli dopiero jedziecie!", starts_at: inDays(10, 19), is_online: false, city: "Warsaw", country_code: "PL", location: "Miejsce podamy zapisanym", audience: "alumni", created_by: ids.marta },
-      { title: "Q&A online: Mediolan od kuchni", description: "Absolwenci Polimi i Bocconi odpowiadają na pytania o mieszkania, kursy i życie w Mediolanie.", starts_at: inDays(5, 20), is_online: true, link: "https://meet.example.com/beexchange", audience: "going", created_by: ids.julia },
-      { title: "Aperitivo na Navigli", description: "Polacy w Mediolanie, zimowy semestr: poznajmy się!", starts_at: inDays(3, 18), is_online: false, city: "Milan", country_code: "IT", location: "Navigli", audience: "all", created_by: ids.ola },
-      { title: "Wieczór włoski w Krakowie", description: "Dla wszystkich po wymianie we Włoszech.", starts_at: inDays(21, 19), is_online: false, city: "Krakow", country_code: "PL", location: "Kazimierz", audience: "alumni", created_by: ids.tomek },
+      { title: "Italian aperitivo in Warsaw 🇮🇹", description: "Byłeś/aś na wymianie we Włoszech, jedziesz tam albo jesteś Włochem/Włoszką w Warszawie? Wpadnij, każdy jest mile widziany!\n\nBeen on exchange in Italy, going there, or an Italian living in Warsaw? Come along, everyone is welcome!", starts_at: inDays(10, 19), is_online: false, city: "Warsaw", country_code: "PL", location: "Hala Koszyki", audience: "all", created_by: ids.marta },
+      { title: "Q&A online: Milan from the inside (PL/EN)", description: "Absolwenci Polimi i Bocconi odpowiadają na pytania o mieszkania, kursy i życie w Mediolanie.\n\nPolimi and Bocconi alumni answer your questions about housing, courses and life in Milan.", starts_at: inDays(5, 20), is_online: true, link: "https://meet.example.com/beexchange", audience: "going", created_by: ids.julia },
+      { title: "Aperitivo on the Navigli 🍹", description: "Wszyscy na wymianie w Mediolanie w tym semestrze: poznajmy się! Lokalni studenci też zaproszeni.\n\nEveryone on exchange in Milan this semester: let's meet! Local students welcome too.", starts_at: inDays(3, 18), is_online: false, city: "Milan", country_code: "IT", location: "Navigli", audience: "all", created_by: ids.ola },
+      { title: "Italian night in Kraków", description: "Dla wszystkich po wymianie we Włoszech i dla Włochów w Krakowie.\n\nFor everyone back from an exchange in Italy and for Italians living in Kraków.", starts_at: inDays(21, 19), is_online: false, city: "Krakow", country_code: "PL", location: "Kazimierz", audience: "all", created_by: ids.tomek },
     ])
     .select("id, created_by"),
   "wydarzenia",

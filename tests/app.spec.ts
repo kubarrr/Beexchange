@@ -164,9 +164,14 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await a.getByLabel("Kraj").selectOption("IT");
     await expect(a.getByLabel("Miasto").locator("option", { hasText: "Mediolan" })).toHaveCount(1);
     await a.getByLabel("Miasto").selectOption({ label: "Mediolan" });
+    const photo = await sharp({ create: { width: 1600, height: 1000, channels: 3, background: "#2a6f97" } }).jpeg().toBuffer();
+    await a.getByLabel("Dodaj zdjęcie").setInputFiles({ name: "aperitivo.jpg", mimeType: "image/jpeg", buffer: photo });
+    await a.getByRole("dialog", { name: "Dopasuj zdjęcie" }).getByRole("button", { name: "Zapisz" }).click();
+    await expect(a.locator('img[src*="/events/"]')).toBeVisible();
     await a.getByRole("button", { name: "Opublikuj wydarzenie" }).click();
     await expect(a).toHaveURL(/\/wydarzenia$/);
     const card = a.locator("article", { hasText: "Testowe aperitivo" });
+    await expect(card.locator('img[src*="/events/"]')).toBeVisible();
     await expect(card).toContainText("19:30");
     await expect(card).toContainText("12");
     await card.getByRole("button", { name: "Idę", exact: true }).click();

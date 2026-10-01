@@ -24,8 +24,18 @@ export function institutionShort(i: Pick<Institution, "name" | "name_en" | "name
   return i.acronym || institutionName(i, locale);
 }
 
+// Kraje, które Node i przeglądarki nazywają inaczej (różne wersje słowników ICU) — inaczej React zgłasza niezgodność
+const FIXED_COUNTRY_NAMES: Record<string, Record<Locale, string>> = {
+  FK: { pl: "Falklandy", en: "Falkland Islands" },
+  HK: { pl: "Hongkong", en: "Hong Kong" },
+  MO: { pl: "Makau", en: "Macao" },
+  PS: { pl: "Palestyna", en: "Palestine" },
+};
+
 export function countryName(code: string | null | undefined, locale: Locale) {
   if (!code) return "";
+  const fixed = FIXED_COUNTRY_NAMES[code.toUpperCase()]?.[locale];
+  if (fixed) return fixed;
   try {
     return new Intl.DisplayNames([locale], { type: "region" }).of(code.toUpperCase()) ?? code;
   } catch {

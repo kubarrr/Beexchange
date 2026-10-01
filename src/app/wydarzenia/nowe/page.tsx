@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireProfile } from "@/lib/auth";
+import { ALL_COUNTRY_CODES } from "@/lib/countries";
+import { countryName } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 import { EventForm } from "./EventForm";
@@ -19,7 +21,12 @@ export default async function NewEventPage() {
         </Link>
         <h1 className="display text-[28px]">{t.events.newTitle}</h1>
       </div>
-      <EventForm locale={locale} defaultCountry={profile.home?.country_code ?? "PL"} />
+      <EventForm
+        locale={locale}
+        defaultCountry={profile.home?.country_code ?? "PL"}
+        userId={profile.id}
+        countries={ALL_COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) })).sort((a, b) => a.n.localeCompare(b.n, locale))}
+      />
     </div>
   );
 }

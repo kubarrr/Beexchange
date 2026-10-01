@@ -29,9 +29,9 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "2. Jakie dane zbieramy",
         body: [
           [
-            "Dane konta: adres e-mail (służy do logowania; nie pokazujemy go innym użytkownikom).",
+            "Dane konta: adres e-mail (służy do logowania; nie pokazujemy go innym użytkownikom). Przy logowaniu przez Google otrzymujemy od Google Twój adres e-mail, imię i nazwisko oraz zdjęcie profilowe.",
             "Dane profilu, które sam(a) podajesz: imię i nazwisko, zdjęcie, uczelnie macierzyste, kierunek, stopień i rok studiów, wymiany (uczelnia, semestr, status), pasje, języki, opis, ustawienia kontaktu i bycia buddy, wybrany język aplikacji.",
-            "Treści, które tworzysz: wiadomości prywatne, wiadomości w grupach, członkostwa w grupach, wydarzenia i zapisy na nie, prośby o buddy, zgłoszenia oraz uczelnie dodane do bazy.",
+            "Treści, które tworzysz: wiadomości prywatne, wiadomości w grupach, członkostwa w grupach, wydarzenia (wraz ze zdjęciami) i zapisy na nie, prośby o buddy, zgłoszenia oraz uczelnie dodane do bazy.",
             "Dane techniczne: adres IP, informacje o przeglądarce i urządzeniu oraz czas zdarzeń zapisywane w logach naszych dostawców w celu zapewnienia bezpieczeństwa i działania serwisu.",
           ],
         ],
@@ -61,7 +61,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
           [
             `Supabase Inc.: baza danych, logowanie i przechowywanie zdjęć (serwery w regionie: ${L.dataRegion.pl}).`,
             "Vercel Inc.: hosting aplikacji internetowej.",
-            "Google LLC (Gmail): wysyłka e-maili z serwisu.",
+            "Google LLC: logowanie przez Google i wysyłka e-maili z serwisu.",
           ],
           "Vercel i Google mogą przetwarzać dane w USA. Transfer odbywa się na podstawie decyzji Komisji Europejskiej o odpowiednim stopniu ochrony (EU-US Data Privacy Framework) lub standardowych klauzul umownych. Nie sprzedajemy Twoich danych i nie przekazujemy ich reklamodawcom.",
         ],
@@ -113,9 +113,9 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "2. Data we collect",
         body: [
           [
-            "Account data: email address (used to log in; never shown to other users).",
+            "Account data: email address (used to log in; never shown to other users). When you sign in with Google, we receive your email address, name and profile picture from Google.",
             "Profile data you provide: name, photo, home universities, field, degree and year of study, exchanges (university, semester, status), passions, languages, bio, contact and buddy settings, app language.",
-            "Content you create: private messages, group messages, group memberships, events and sign-ups, buddy requests, reports and universities you add.",
+            "Content you create: private messages, group messages, group memberships, events (including photos) and sign-ups, buddy requests, reports and universities you add.",
             "Technical data: IP address, browser and device information and timestamps stored in our providers' logs for security and operation.",
           ],
         ],
@@ -145,7 +145,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
           [
             `Supabase Inc.: database, authentication and photo storage (servers in: ${L.dataRegion.en}).`,
             "Vercel Inc.: web hosting.",
-            "Google LLC (Gmail): sending emails.",
+            "Google LLC: Sign in with Google and sending emails.",
           ],
           "Vercel and Google may process data in the USA based on the EU-US Data Privacy Framework adequacy decision or standard contractual clauses. We do not sell your data or share it with advertisers.",
         ],
@@ -246,6 +246,8 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         title: "§6. Treści użytkowników i kontakty",
         body: [
           "Odpowiadasz za treści, które publikujesz. Udzielasz Usługodawcy nieodpłatnej, niewyłącznej licencji na ich przechowywanie i wyświetlanie w Serwisie na czas, w którym się w nim znajdują.",
+          "Zdjęcia (profilowe i przy wydarzeniach) wgrywasz tylko wtedy, gdy masz do nich prawa: są Twoje albo autor się na to zgodził. Jeśli na zdjęciu widać inne rozpoznawalne osoby, potrzebujesz ich zgody na publikację wizerunku. Nie wgrywaj zdjęć skopiowanych z internetu.",
+          "Zdjęcia miast pochodzą z Wikimedia Commons i są używane na wolnych licencjach (np. CC BY-SA). Autora i licencję podajemy w podpisie zdjęcia, który prowadzi do strony źródłowej.",
           "Usługodawca nie weryfikuje informacji podawanych przez użytkowników (np. o uczelniach, mieszkaniach czy przedmiotach). Relacje buddy, spotkania i wydarzenia są ustaleniami między użytkownikami. Na spotkania offline chodź z rozwagą i nigdy nie wpłacaj pieniędzy nieznajomym bez sprawdzenia.",
         ],
       },
@@ -326,6 +328,8 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         title: "§6. User content and contacts",
         body: [
           "You are responsible for the content you post. You grant the Provider a free, non-exclusive licence to store and display it in the Service for as long as it remains there.",
+          "Upload photos (profile and event photos) only if you have the rights to them: they are yours or the author agreed. If other recognisable people appear in a photo, you need their consent to publish their image. Do not upload photos copied from the internet.",
+          "City photos come from Wikimedia Commons and are used under free licences (e.g. CC BY-SA). The author and licence are shown in the photo caption, which links to the source page.",
           "The Provider does not verify information provided by users (e.g. about universities, housing or courses). Buddy relationships, meetups and events are arrangements between users. Meet offline with care and never send money to strangers without checking.",
         ],
       },

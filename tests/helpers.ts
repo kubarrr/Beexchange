@@ -65,8 +65,10 @@ export async function cleanup() {
   const { data } = await admin.auth.admin.listUsers({ perPage: 500 });
   const bots = data.users.filter((u) => u.email?.endsWith(`@${DOMAIN}`));
   for (const b of bots) {
-    const { data: files } = await admin.storage.from("avatars").list(b.id);
-    if (files?.length) await admin.storage.from("avatars").remove(files.map((f) => `${b.id}/${f.name}`));
+    for (const bucket of ["avatars", "events"]) {
+      const { data: files } = await admin.storage.from(bucket).list(b.id);
+      if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${b.id}/${f.name}`));
+    }
     await admin.auth.admin.deleteUser(b.id);
   }
   const { data: groups } = await admin.from("groups").select("id, group_members(count)");

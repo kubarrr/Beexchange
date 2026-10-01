@@ -4,44 +4,60 @@ import { useEffect, useRef, useState } from "react";
 import { ZoomIn, ZoomOut } from "lucide-react";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
-const VIEW = 280; // bok kwadratu kadrowania w px
-const OUT = 512; // bok zapisanego zdjęcia
+const VIEW_W = 280; // szerokość okna kadrowania w px
 const MAX_ZOOM = 4;
 
 type Pos = { zoom: number; x: number; y: number };
 
-// Kadrowanie zdjęcia profilowego: przesuwanie palcem/myszką, przybliżanie suwakiem, dwoma palcami lub kółkiem
-export function PhotoCropper({ locale, bitmap, onCancel, onDone }: { locale: Locale; bitmap: ImageBitmap; onCancel: () => void; onDone: (blob: Blob) => void }) {
+// Kadrowanie zdjęcia: przesuwanie palcem/myszką, przybliżanie suwakiem, dwoma palcami lub kółkiem.
+// aspect = szerokość / wysokość (1 dla zdjęcia profilowego, 16/9 dla wydarzenia)
+export function PhotoCropper({
+  locale,
+  bitmap,
+  onCancel,
+  onDone,
+  aspect = 1,
+  outWidth = 512,
+}: {
+  locale: Locale;
+  bitmap: ImageBitmap;
+  onCancel: () => void;
+  onDone: (blob: Blob) => void;
+  aspect?: number;
+  outWidth?: number;
+}) {
   const t = dictionaries[locale];
-  const base = VIEW / Math.min(bitmap.width, bitmap.height); // skala, przy której zdjęcie dokładnie wypełnia kwadrat
+  const VIEW_H = Math.round(VIEW_W / aspect);
+  const base = Math.max(VIEW_W / bitmap.width, VIEW_H / bitmap.height); // skala, przy której zdjęcie dokładnie wypełnia okno
   const [pos, setPos] = useState<Pos>({ zoom: 1, x: 0, y: 0 });
   const canvas = useRef<HTMLCanvasElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ dist: number; zoom: number } | null>(null);
 
-  // Zdjęcie zawsze zakrywa cały kwadrat — przesunięcie ograniczamy do nadmiaru
+  // Zdjęcie zawsze zakrywa całe okno — przesunięcie ograniczamy do nadmiaru
   const clamp = (p: Pos): Pos => {
     const zoom = Math.min(MAX_ZOOM, Math.max(1, p.zoom));
-    const maxX = (bitmap.width * base * zoom - VIEW) / 2;
-    const maxY = (bitmap.height * base * zoom - VIEW) / 2;
+    const maxX = (bitmap.width * base * zoom - VIEW_W) / 2;
+    const maxY = (bitmap.height * base * zoom - VIEW_H) / 2;
     return { zoom, x: Math.min(maxX, Math.max(-maxX, p.x)), y: Math.min(maxY, Math.max(-maxY, p.y)) };
   };
   const update = (fn: (p: Pos) => Pos) => setPos((p) => clamp(fn(p)));
 
-  // Źródłowy kwadrat w pikselach oryginału
+  // Wycinany prostokąt w pikselach oryginału
   const source = (p: Pos) => {
     const scale = base * p.zoom;
-    const side = VIEW / scale;
-    return { sx: bitmap.width / 2 - p.x / scale - side / 2, sy: bitmap.height / 2 - p.y / scale - side / 2, side };
+    const sw = VIEW_W / scale;
+    const sh = VIEW_H / scale;
+    return { sx: bitmap.width / 2 - p.x / scale - sw / 2, sy: bitmap.height / 2 - p.y / scale - sh / 2, sw, sh };
   };
 
   useEffect(() => {
     const c = canvas.current;
     if (!c) return;
     const ctx = c.getContext("2d")!;
-    const { sx, sy, side } = source(pos);
+    const { sx, sy, sw, sh } = source(pos);
     ctx.clearRect(0, 0, c.width, c.height);
-    ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, c.width, c.height);
+    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, c.width, c.height);
   });
 
   useEffect(() => {
@@ -78,9 +94,10 @@ export function PhotoCropper({ locale, bitmap, onCancel, onDone }: { locale: Loc
 
   function save() {
     const out = document.createElement("canvas");
-    out.width = out.height = OUT;
-    const { sx, sy, side } = source(pos);
-    out.getContext("2d")!.drawImage(bitmap, sx, sy, side, side, 0, 0, OUT, OUT);
+    out.width = outWidth;
+    out.height = Math.round(outWidth / aspect);
+    const { sx, sy, sw, sh } = source(pos);
+    out.getContext("2d")!.drawImage(bitmap, sx, sy, sw, sh, 0, 0, out.width, out.height);
     out.toBlob((b) => b && onDone(b), "image/jpeg", 0.86);
   }
 
@@ -93,9 +110,9 @@ export function PhotoCropper({ locale, bitmap, onCancel, onDone }: { locale: Loc
         </div>
         <canvas
           ref={canvas}
-          width={VIEW * 2}
-          height={VIEW * 2}
-          style={{ width: VIEW, height: VIEW }}
+          width={VIEW_W * 2}
+          height={VIEW_H * 2}
+          style={{ width: VIEW_W, height: VIEW_H }}
           className="mx-auto block cursor-grab touch-none rounded-2xl border-[3px] border-ink bg-ink-soft active:cursor-grabbing"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}

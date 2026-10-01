@@ -478,7 +478,11 @@ async function page(bot, path, expect) {
     check(`${path} (${bot.name})`, false, `serwer nie odpowiada (${e.message}); czy działa npm run dev?`);
   }
 }
-await page(zuza, "/roj", ["SGH → Bocconi", "Polacy · Bocconi", "Bot Giulia"]);
+{
+  const { data: milan } = await zuza.db.from("place_photos").select("url, author, license, source_url").eq("country_code", "IT").eq("city", "Milan").maybeSingle();
+  check("Zdjęcie Mediolanu z Commons: wolna licencja, autor i link do źródła", !!milan && /^(CC0|Public domain|CC BY)/i.test(milan.license) && !!milan.author && milan.source_url.startsWith("https://commons.wikimedia.org/"), JSON.stringify(milan));
+}
+await page(zuza, "/roj", ["SGH → Bocconi", "Polacy · Bocconi", "Bot Giulia", "Fot."]);
 await page(giulia, "/roj", ["Przyjezdni u Ciebie", "Wszyscy · Bocconi"]);
 await page(obcy, "/roj");
 await page(zuza, "/ludzie", ["Bot Kasia"]);

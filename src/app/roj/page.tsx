@@ -4,6 +4,7 @@ import { joinGroup, requestBuddy } from "@/app/actions/bx";
 import { Avatar, EmptyState, Flag, InstBadge, StatusBadge } from "@/components/bx";
 import { CopyInvite } from "@/components/CopyInvite";
 import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
+import { PhotoBanner, loadPlacePhotos, placeKey } from "@/components/PlacePhoto";
 import { requireProfile } from "@/lib/auth";
 import { cityName } from "@/lib/cities";
 import { institutionShort, semesterLabel, semesterPhase, stageOf, type Institution } from "@/lib/domain";
@@ -98,6 +99,11 @@ export default async function SwarmPage() {
     else if (best.semester) q = q.eq("semester", best.semester);
     faces = ((await q).data ?? []).map((r) => r.profiles as unknown as Mini);
   }
+
+  const photos = await loadPlacePhotos(
+    supabase,
+    me.exchanges.map((x) => ({ cc: x.institution.country_code, city: x.institution.city })),
+  );
 
   const sentTo = new Set((sent ?? []).map((r) => r.to_user));
   const localList = new Map<string, Buddy>();
@@ -266,19 +272,29 @@ export default async function SwarmPage() {
         const groups = ordered.filter((s) => s !== best);
         const shown = groups.slice(0, VISIBLE_PER_EXCHANGE);
         const more = groups.slice(VISIBLE_PER_EXCHANGE);
+        const photo = photos.get(placeKey(x.institution.country_code, x.institution.city));
+        const header = (
+          <div className={`flex items-center gap-3 ${photo ? "p-3.5 pb-6 text-cream" : ""}`}>
+            <InstBadge inst={x.institution} size={40} tone="honey" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold">{institutionShort(x.institution, locale)}</p>
+              <p className={`flex items-center gap-1.5 text-[13px] ${photo ? "text-sand" : "text-muted"}`}>
+                <Flag code={x.institution.country_code} className="h-3 w-[18px]" />
+                {cityName(x.institution.city, locale)} · {semesterLabel(x.semester, t)}
+              </p>
+            </div>
+            <StatusBadge status={stageOf(x.status, x.semester)} t={t} />
+          </div>
+        );
         return (
           <section key={x.id} className="space-y-3 pt-3">
-            <div className="flex items-center gap-3">
-              <InstBadge inst={x.institution} size={40} tone="honey" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{institutionShort(x.institution, locale)}</p>
-                <p className="flex items-center gap-1.5 text-[13px] text-muted">
-                  <Flag code={x.institution.country_code} className="h-3 w-[18px]" />
-                  {cityName(x.institution.city, locale)} · {semesterLabel(x.semester, t)}
-                </p>
-              </div>
-              <StatusBadge status={stageOf(x.status, x.semester)} t={t} />
-            </div>
+            {photo ? (
+              <PhotoBanner src={photo.url} credit={photo} t={t} className="h-40 rounded-[22px]">
+                {header}
+              </PhotoBanner>
+            ) : (
+              header
+            )}
             {groups.length ? shown.map(row) : <p className="rounded-2xl bg-sand px-4 py-3 text-sm">{t.swarm.noGroupsYet}</p>}
             {more.length > 0 && (
               <details className="group space-y-3">
