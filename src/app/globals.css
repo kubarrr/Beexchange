@@ -95,3 +95,71 @@ body {
     @apply font-display text-xl font-bold tracking-tight;
   }
 }
+
+/* ============ Ruchome tła zakładek (SectionBackground) ============ */
+.bee-flight {
+  position: absolute;
+  left: 0;
+  animation: bee-across linear infinite;
+  will-change: transform;
+}
+.bee-flight.bee-rtl {
+  animation-name: bee-across-rtl;
+}
+.bee-bob {
+  display: inline-block;
+  animation: bee-bob 3.2s ease-in-out infinite;
+}
+.bee-wings {
+  transform-origin: 15px 9px;
+  animation: bee-wings 0.14s ease-in-out infinite alternate;
+}
+.flower-sway {
+  transform-origin: 50% 100%;
+  animation: flower-sway 6s ease-in-out infinite alternate;
+}
+.bear-walk {
+  left: 0;
+  animation: bear-across 90s linear infinite;
+}
+.bear-walk.bear-rtl {
+  animation-name: bear-across-rtl;
+  animation-duration: 120s;
+}
+
+@keyframes bee-across {
+  from { transform: translateX(-60px); }
+  to { transform: translateX(calc(100vw + 60px)); }
+}
+@keyframes bee-across-rtl {
+  from { transform: translateX(calc(100vw + 60px)); }
+  to { transform: translateX(-60px); }
+}
+@keyframes bee-bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-14px) rotate(5deg); }
+}
+@keyframes bee-wings {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.45); }
+}
+@keyframes flower-sway {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(4deg); }
+}
+@keyframes bear-across {
+  0% { transform: translateX(-60px) translateY(0); }
+  50% { transform: translateX(50vw) translateY(-3px); }
+  100% { transform: translateX(calc(100vw + 60px)) translateY(0); }
+}
+@keyframes bear-across-rtl {
+  from { transform: translateX(calc(100vw + 60px)); }
+  to { transform: translateX(-60px); }
+}
+
+/* Ograniczony ruch w systemie: tło stoi */
+@media (prefers-reduced-motion: reduce) {
+  .section-bg * {
+    animation: none !important;
+  }
+}

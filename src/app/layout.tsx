@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Onest } from "next/font/google";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/AppNav";
+import { SectionBackground } from "@/components/SectionBackground";
 import { getCurrentUser, unreadTotal } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import "./globals.css";
@@ -30,6 +31,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={locale} className={`${onest.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
+        {userId && <SectionBackground />}
         <Header />
         <main className={`flex-1 ${userId ? "pb-28 md:pb-10" : ""}`}>{children}</main>
         {userId && <BottomNav locale={locale} unread={unread} />}
