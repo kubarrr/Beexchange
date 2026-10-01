@@ -14,7 +14,8 @@
     "test:browser": "playwright test",
     "test:load": "node scripts/load-test.mjs",
     "import:catalog": "node scripts/import-catalog.mjs",
-    "import:places": "node scripts/import-places.mjs"
+    "import:places": "node scripts/import-places.mjs",
+    "demo:video": "node scripts/record-demo.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
