@@ -69,6 +69,19 @@ export function currentSemester(now = new Date()) {
   return m >= 9 ? `${y}W` : m <= 2 ? `${y - 1}W` : `${y}S`;
 }
 
+// Następny semestr po danym: zima 2026/27 → lato 2026/27 → zima 2027/28
+export function nextSemester(code: string) {
+  const y = Number(code.slice(0, 4));
+  return code.endsWith("W") ? `${y + 1}S` : `${y}W`;
+}
+
+// Grupy służą do integracji teraz: bieżący semestr i dwa kolejne
+export function groupSemesters(now = new Date()) {
+  const cur = currentSemester(now);
+  const next = nextSemester(cur);
+  return [cur, next, nextSemester(next)];
+}
+
 // Kody semestrów porównują się jak tekst: "2026W" < "2027S" < "2027W"
 export type Phase = "upcoming" | "now" | "past";
 export function semesterPhase(code: string | null | undefined, now = new Date()): Phase | null {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { INSTITUTION_FIELDS, type Institution, autoStage, currentSemester, personStage, semesterPhase } from "@/lib/domain";
+import { INSTITUTION_FIELDS, type Institution, autoStage, currentSemester, groupSemesters, personStage, semesterPhase } from "@/lib/domain";
 import { PASSION_KEYS, dictionaries } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n";
 
@@ -225,6 +225,8 @@ export async function joinGroupById(formData: FormData) {
 
 export async function createGroup(formData: FormData) {
   const { supabase } = await requireUser("/groups");
+  // Grupy zakładamy tylko na bieżący semestr i dwa kolejne
+  if (!groupSemesters().includes(String(formData.get("semester")))) throw new Error("semester");
   const { data, error } = await supabase.rpc("create_group", {
     p_kind: String(formData.get("kind")),
     p_sem: String(formData.get("semester")),

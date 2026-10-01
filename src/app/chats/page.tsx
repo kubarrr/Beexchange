@@ -5,7 +5,7 @@ import { Avatar, EmptyState, PageTitle } from "@/components/bx";
 import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
-import { groupTitle, type GroupKind } from "@/lib/groups";
+import { groupTitle, type GroupKind, isActiveGroup } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 
@@ -37,7 +37,9 @@ export default async function ChatsPage() {
       .limit(1, { referencedTable: "groups.group_messages" }),
     supabase
       .from("conversations")
-      .select("id, last_message_at, a:profiles!conversations_user_a_fkey(id, full_name, avatar_url), b:profiles!conversations_user_b_fkey(id, full_name, avatar_url), messages(body, sender_id, created_at)")
+      .select(
+        "id, last_message_at, a:profiles!conversations_user_a_fkey(id, full_name, avatar_url), b:profiles!conversations_user_b_fkey(id, full_name, avatar_url), messages(body, sender_id, created_at)",
+      )
       .order("last_message_at", { ascending: false })
       .order("created_at", { referencedTable: "messages", ascending: false })
       .limit(1, { referencedTable: "messages" }),
@@ -47,11 +49,46 @@ export default async function ChatsPage() {
   const dot = (n: number | undefined) =>
     n ? <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-honey px-1.5 text-xs font-extrabold ring-2 ring-ink">{n > 99 ? "99+" : n}</span> : null;
 
-  type G = { id: number; kind: GroupKind; city: string | null; country_code: string | null; nat_cc: string | null; semester: string | null; home: Institution | null; exchange: Institution | null; group_messages: { body: string; created_at: string }[] };
+  type G = {
+    id: number;
+    kind: GroupKind;
+    city: string | null;
+    country_code: string | null;
+    nat_cc: string | null;
+    semester: string | null;
+    home: Institution | null;
+    exchange: Institution | null;
+    group_messages: { body: string; created_at: string }[];
+  };
   const groups = (memberships ?? [])
     .map((m) => m.groups as unknown as G)
     .filter(Boolean)
     .sort((a, b) => (b.group_messages[0]?.created_at ?? "").localeCompare(a.group_messages[0]?.created_at ?? ""));
+  // Aktywne grupy (bieżący semestr i dwa kolejne) na górze; stare semestry i dawne rodzaje w zwiniętym archiwum
+  const active = groups.filter(isActiveGroup);
+  const archived = groups.filter((g) => !isActiveGroup(g));
+
+  const groupRow = (g: G) => {
+    const { title, subtitle } = groupTitle(g, t, locale);
+    const last = g.group_messages[0];
+    const n = unread.get(`group:${g.id}`);
+    return (
+      <Link key={g.id} href={`/groups/${g.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
+        <GroupKindIcon kind={g.kind} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="flex min-w-0 items-center gap-2 font-bold">
+              <GroupFlag kind={g.kind} country_code={g.country_code} nat_cc={g.nat_cc} className="h-3 w-[18px]" />
+              <span className="truncate">{title}</span>
+            </p>
+            {last && <span className="shrink-0 text-xs text-muted">{formatRelative(last.created_at, locale)}</span>}
+          </div>
+          <p className={`truncate text-[13px] ${n ? "font-semibold text-ink" : "text-muted"}`}>{last ? last.body : subtitle}</p>
+        </div>
+        {dot(n)}
+      </Link>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
@@ -140,30 +177,8 @@ export default async function ChatsPage() {
 
       <section className="space-y-2">
         <h2 className="label-caps">{t.chats.groups}</h2>
-        {groups.length ? (
-          <div className="panel divide-y divide-sand overflow-hidden">
-            {groups.map((g) => {
-              const { title, subtitle } = groupTitle(g, t, locale);
-              const last = g.group_messages[0];
-              const n = unread.get(`group:${g.id}`);
-              return (
-                <Link key={g.id} href={`/groups/${g.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
-                  <GroupKindIcon kind={g.kind} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="flex min-w-0 items-center gap-2 font-bold">
-                        <GroupFlag kind={g.kind} country_code={g.country_code} nat_cc={g.nat_cc} className="h-3 w-[18px]" />
-                        <span className="truncate">{title}</span>
-                      </p>
-                      {last && <span className="shrink-0 text-xs text-muted">{formatRelative(last.created_at, locale)}</span>}
-                    </div>
-                    <p className={`truncate text-[13px] ${n ? "font-semibold text-ink" : "text-muted"}`}>{last ? last.body : subtitle}</p>
-                  </div>
-                  {dot(n)}
-                </Link>
-              );
-            })}
-          </div>
+        {active.length ? (
+          <div className="panel divide-y divide-sand overflow-hidden">{active.map(groupRow)}</div>
         ) : (
           <EmptyState
             action={
@@ -174,6 +189,14 @@ export default async function ChatsPage() {
           >
             {t.chats.noGroups}
           </EmptyState>
+        )}
+        {archived.length > 0 && (
+          <details className="group">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold text-muted [&::-webkit-details-marker]:hidden">
+              {t.chats.archive(archived.length)}
+            </summary>
+            <div className="panel divide-y divide-sand overflow-hidden opacity-80">{archived.map(groupRow)}</div>
+          </details>
         )}
       </section>
 

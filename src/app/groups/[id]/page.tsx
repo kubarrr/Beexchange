@@ -5,7 +5,7 @@ import { ArrowLeft, LogOut } from "lucide-react";
 import { joinGroup, joinGroupById, leaveGroup } from "@/app/actions/bx";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, type Institution } from "@/lib/domain";
-import { groupTitle, type GroupKind, type Suggestion } from "@/lib/groups";
+import { groupTitle, type GroupKind, type Suggestion, isActiveGroup } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 import { GroupChat, type GroupMessage, type Member } from "./GroupChat";
@@ -73,7 +73,7 @@ export default async function GroupPage({ params }: PageProps<"/groups/[id]">) {
               <span className="truncate">{title}</span>
             </p>
             <p className="truncate text-[13px] text-mist">
-              {subtitle} · {t.common.people(list.length)}
+              {isActiveGroup(group) ? subtitle : t.chats.archived} · {t.common.people(list.length)}
             </p>
           </div>
           {isMember && (

@@ -7,9 +7,9 @@ import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { PhotoBanner, loadPlacePhotos, placeKey } from "@/components/PlacePhoto";
 import { requireProfile } from "@/lib/auth";
 import { cityName } from "@/lib/cities";
-import { exchangeStage, institutionName, personStage, semesterLabel, semesterPhase, type Institution } from "@/lib/domain";
+import { groupSemesters, exchangeStage, institutionName, personStage, semesterLabel, semesterPhase, type Institution } from "@/lib/domain";
 import { PERSON_SELECT, PersonCard, personBadges, sortExchanges, type Person } from "@/components/PersonCard";
-import { ACTIVE_GROUP_KINDS, groupTitle, groupWhy, type GroupKind, type Suggestion } from "@/lib/groups";
+import { groupTitle, isActiveGroup, groupWhy, type GroupKind, type Suggestion } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 
@@ -51,7 +51,7 @@ export default async function SwarmPage() {
 
   const seen = new Set<string>();
   const all: Row[] = ((sugg ?? []) as Suggestion[])
-    .filter((s) => s.key && ACTIVE_GROUP_KINDS.includes(s.kind) && !seen.has(s.key) && seen.add(s.key))
+    .filter((s) => s.key && isActiveGroup(s) && !seen.has(s.key) && seen.add(s.key))
     .map((s) => ({ ...s, others: s.candidates - (s.self_counted ? 1 : 0) }))
     .filter((s) => s.others > 0 || s.members > (s.is_member ? 1 : 0));
 
@@ -79,7 +79,10 @@ export default async function SwarmPage() {
   }));
   // Najlepsze dopasowanie: pierwsza grupa najbliższej wymiany (wymiany przed wyjazdem są na początku listy)
   // Najlepsze dopasowanie tylko dla wymian przed nami i trwających — absolwentom nic nie polecamy
-  const upcoming = sections.filter((sec) => semesterPhase(sec.x.semester) !== "past");
+  // Grupy tylko na bieżący semestr i dwa kolejne; dalsze wymiany dostaną grupy bliżej wyjazdu
+  const groupWindow = groupSemesters();
+  const upcoming = sections.filter((sec) => groupWindow.includes(sec.x.semester));
+  const later = sections.filter((sec) => sec.x.semester > groupWindow[groupWindow.length - 1]);
   const best = upcoming.find((sec) => sec.groups.length)?.groups[0];
 
   let faces: Mini[] = [];
@@ -227,6 +230,12 @@ export default async function SwarmPage() {
           {t.swarm.firstLead}
         </EmptyState>
       )}
+
+      {later.map(({ x }) => (
+        <p key={x.id} className="rounded-2xl bg-sand px-4 py-3 text-sm">
+          {t.swarm.groupsLater(institutionName(x.institution), semesterLabel(x.semester, t))}
+        </p>
+      ))}
 
       {/* Zakończone wymiany nie dostają już propozycji grup — do starych grup wchodzi się przez Czaty */}
       {upcoming.map(({ x, groups: ordered }) => {

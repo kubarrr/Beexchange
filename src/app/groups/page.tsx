@@ -4,8 +4,8 @@ import { createGroup, joinGroupById } from "@/app/actions/bx";
 import { EmptyState, PageTitle } from "@/components/bx";
 import { GroupFlag, GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
-import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
-import { ACTIVE_GROUP_KINDS, groupTitle, type GroupKind } from "@/lib/groups";
+import { groupSemesters, INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
+import { groupTitle, isActiveGroup, type GroupKind } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 import { DiscoverFilters, type DiscoverQuery } from "./DiscoverFilters";
@@ -37,7 +37,8 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/groups"
   const tab = (["semester", "city"].includes(str(sp.tab)) ? str(sp.tab) : "all") as DiscoverQuery["tab"];
   const cc = /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
   const city = str(sp.city).slice(0, 80);
-  const sem = /^\d{4}[WS]$/.test(str(sp.sem)) ? str(sp.sem) : "";
+  // Tylko bieżący semestr i dwa kolejne
+  const sem = groupSemesters().includes(str(sp.sem)) ? str(sp.sem) : "";
   const instId = tab === "semester" ? Number(str(sp.inst)) || null : null;
   const inst = instId ? ((await supabase.from("institutions").select(INSTITUTION_FIELDS).eq("id", instId).maybeSingle()).data as Institution | null) : null;
 
@@ -53,7 +54,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/groups"
     cc && tab !== "semester" ? supabase.from("institutions").select("city").eq("country_code", cc).not("city", "is", null).limit(3000) : Promise.resolve({ data: [] }),
   ]);
   // Stare rodzaje (trasa, absolwenci) zostają tylko w czatach członków
-  const groups = ((data ?? []) as Row[]).filter((g) => ACTIVE_GROUP_KINDS.includes(g.kind));
+  const groups = ((data ?? []) as Row[]).filter(isActiveGroup);
   const cities = [...new Set((cityRows ?? []).map((r) => r.city as string))].sort((a, b) => a.localeCompare(b));
 
   const instIds = [...new Set(groups.flatMap((g) => [g.home_institution_id, g.exchange_institution_id]).filter((x): x is number => !!x))];

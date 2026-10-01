@@ -170,6 +170,7 @@ const pl = {
     noExchangeCta: "Uzupełnij wymianę",
     buddies: "Buddy na miejscu",
     helpTitle: "Pomóż następnym",
+    groupsLater: (uni: string, sem: string) => `${uni}, ${sem}: grupy otworzymy bliżej wyjazdu (na dwa semestry przed).`,
     helpLead: "Byłeś/aś już na wymianie. Włącz w profilu 📋 pomoc z papierami albo 🕵️ sprawdzanie mieszkań, a osoby z Twojej uczelni Cię znajdą.",
     helpCta: "Ustaw w profilu",
     buddiesLead: "Lokalni studenci uczelni, na którą jedziesz. Pomogą Ci się odnaleźć.",
@@ -386,6 +387,8 @@ const pl = {
   },
   chats: {
     checkRequests: "Prośby o sprawdzenie mieszkania",
+    archive: (n: number) => `Archiwum: ${n} starszych grup`,
+    archived: "Archiwum — grupa ze starszego semestru",
     wantsCheck: (city: string) => `prosi o sprawdzenie mieszkania (${city})`,
     markChecked: "Sprawdzone",
     title: "Czaty",
@@ -584,6 +587,7 @@ const en: Dictionary = {
     noExchangeCta: "Add exchange",
     buddies: "Local buddies",
     helpTitle: "Help the next ones",
+    groupsLater: (uni: string, sem: string) => `${uni}, ${sem}: groups open closer to departure (two semesters before).`,
     helpLead: "You have been on exchange. Turn on 📋 help with papers or 🕵️ flat checks in your profile and people from your university will find you.",
     helpCta: "Set it in your profile",
     buddiesLead: "Local students at the university you are going to. They will help you settle in.",
@@ -799,6 +803,8 @@ const en: Dictionary = {
   },
   chats: {
     checkRequests: "Flat check requests",
+    archive: (n: number) => `Archive: ${n} older groups`,
+    archived: "Archive: group from an earlier semester",
     wantsCheck: (city: string) => `asks you to check a flat in ${city}`,
     markChecked: "Checked",
     title: "Chats",

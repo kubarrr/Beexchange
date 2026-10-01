@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { InstitutionPicker, COUNTRY_CODES } from "@/components/InstitutionPicker";
 import { cityName } from "@/lib/cities";
-import { countryName, semesterLabel, semesterOptions, type Institution } from "@/lib/domain";
+import { countryName, groupSemesters, semesterLabel, type Institution } from "@/lib/domain";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
 export type DiscoverQuery = { tab: "all" | "semester" | "city"; cc: string; city: string; inst: Institution | null; sem: string };
@@ -77,7 +77,7 @@ export function DiscoverFilters({ locale, q, cities }: { locale: Locale; q: Disc
         <span className="label-caps">{t.people.semester}</span>
         <select className="field" value={q.sem} onChange={(e) => go({ sem: e.target.value })}>
           <option value="">{t.common.any}</option>
-          {semesterOptions().map((c) => (
+          {groupSemesters().map((c) => (
             <option key={c} value={c}>
               {semesterLabel(c, t)}
             </option>

@@ -1,6 +1,6 @@
 import { cityName } from "@/lib/cities";
 import { demonym } from "@/lib/demonyms";
-import { countryName, institutionShort, semesterLabel, type Institution } from "@/lib/domain";
+import { countryName, groupSemesters, institutionShort, semesterLabel, type Institution } from "@/lib/domain";
 import type { Dictionary, Locale } from "@/lib/i18n/dictionaries";
 
 // route        PW → PoliMi · semestr               (ta sama trasa)
@@ -13,6 +13,12 @@ export type GroupKind = "route" | "semester" | "alumni" | "city" | "nat_uni" | "
 // Grupy, które proponujemy i pokazujemy (zawsze na dany semestr). Trasa i grupy absolwentów zostają tylko
 // w czatach osób, które już do nich należą.
 export const ACTIVE_GROUP_KINDS: GroupKind[] = ["nat_uni", "nat_city", "nat_country", "semester", "city"];
+
+// Grupa jest „aktywna”, gdy ma aktywny rodzaj i semestr bieżący albo jeden z dwóch kolejnych.
+// Pozostałe (stare semestry, trasy, absolwenci) trafiają do archiwum w Czatach.
+export function isActiveGroup(g: { kind: GroupKind; semester: string | null }) {
+  return ACTIVE_GROUP_KINDS.includes(g.kind) && !!g.semester && groupSemesters().includes(g.semester);
+}
 
 export type GroupInfo = {
   kind: GroupKind;
