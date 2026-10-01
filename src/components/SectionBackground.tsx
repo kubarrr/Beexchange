@@ -36,11 +36,7 @@ function Bees({ flights }: { flights: Flight[] }) {
   return (
     <>
       {flights.map((f, i) => (
-        <span
-          key={i}
-          className={`bee-flight ${f.rtl ? "bee-rtl" : ""}`}
-          style={{ top: `${f.y}%`, animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s` } as CSSProperties}
-        >
+        <span key={i} className={`bee-flight ${f.rtl ? "bee-rtl" : ""}`} style={{ top: `${f.y}%`, animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s` } as CSSProperties}>
           <span className="bee-bob" style={{ animationDelay: `${i * 0.7}s` }}>
             <span className={f.rtl ? "inline-block -scale-x-100" : "inline-block"}>
               <Bee size={f.size} />
@@ -105,15 +101,7 @@ function Grass({ flowers = false }: { flowers?: boolean }) {
       </svg>
       {flowers &&
         blooms.map((b, i) => (
-          <svg
-            key={i}
-            className="flower-sway absolute"
-            style={{ left: `${b.x}%`, top: `${b.y}%`, animationDelay: `${(i % 5) * 0.8}s` }}
-            width="26"
-            height="40"
-            viewBox="0 0 26 40"
-            aria-hidden="true"
-          >
+          <svg key={i} className="flower-sway absolute" style={{ left: `${b.x}%`, top: `${b.y}%`, animationDelay: `${(i % 5) * 0.8}s` }} width="26" height="40" viewBox="0 0 26 40" aria-hidden="true">
             <path d="M13 16 V40" stroke="#6fa04a" strokeWidth="2" />
             {[0, 72, 144, 216, 288].map((a) => (
               <ellipse key={a} cx="13" cy="7" rx="4" ry="6.5" fill={b.c} stroke="#17140f" strokeOpacity="0.15" transform={`rotate(${a} 13 13)`} />
@@ -172,23 +160,50 @@ export function SectionBackground() {
           <Grass flowers />
           <Bees
             flights={[
-              { y: 10, dur: 31, delay: -3 },
-              { y: 22, dur: 44, delay: -19, rtl: true, size: 18 },
-              { y: 35, dur: 27, delay: -9 },
-              { y: 46, dur: 49, delay: -28, rtl: true },
-              { y: 58, dur: 36, delay: -15, size: 18 },
-              { y: 68, dur: 40, delay: -34, rtl: true, size: 26 },
-              { y: 76, dur: 30, delay: -21 },
-              { y: 84, dur: 55, delay: -40, rtl: true, size: 18 },
+              { y: 6, dur: 26, delay: 0, size: 22 },
+              { y: 9.5, dur: 33, delay: -11, rtl: true, size: 18 },
+              { y: 13, dur: 40, delay: -22, size: 26 },
+              { y: 16.5, dur: 47, delay: -33, rtl: true, size: 20 },
+              { y: 20, dur: 54, delay: -44, size: 22 },
+              { y: 23.5, dur: 31, delay: -5, rtl: true, size: 18 },
+              { y: 27, dur: 38, delay: -16, size: 26 },
+              { y: 30.5, dur: 45, delay: -27, rtl: true, size: 20 },
+              { y: 34, dur: 52, delay: -38, size: 22 },
+              { y: 37.5, dur: 29, delay: -49, rtl: true, size: 18 },
+              { y: 41, dur: 36, delay: -10, size: 26 },
+              { y: 44.5, dur: 43, delay: -21, rtl: true, size: 20 },
+              { y: 48, dur: 50, delay: -32, size: 22 },
+              { y: 51.5, dur: 27, delay: -43, rtl: true, size: 18 },
+              { y: 55, dur: 34, delay: -4, size: 26 },
+              { y: 58.5, dur: 41, delay: -15, rtl: true, size: 20 },
+              { y: 62, dur: 48, delay: -26, size: 22 },
+              { y: 65.5, dur: 55, delay: -37, rtl: true, size: 18 },
+              { y: 69, dur: 32, delay: -48, size: 26 },
+              { y: 72.5, dur: 39, delay: -9, rtl: true, size: 20 },
+              { y: 76, dur: 46, delay: -20, size: 22 },
+              { y: 79.5, dur: 53, delay: -31, rtl: true, size: 18 },
+              { y: 83, dur: 30, delay: -42, size: 26 },
+              { y: 86.5, dur: 37, delay: -3, rtl: true, size: 20 },
             ]}
           />
-          <span className="bear-walk absolute bottom-[7%] text-[34px]" style={{ animationDelay: "-12s" }}>
+          <span className="bear-walk absolute bottom-[4%] text-[34px]" style={{ animationDelay: "-12s", animationDuration: "90s" }}>
             🐻
           </span>
-          <span className="bear-walk bear-rtl absolute bottom-[16%] text-[28px]" style={{ animationDelay: "-48s" }}>
+          <span className="bear-walk bear-rtl absolute bottom-[11%] text-[28px]" style={{ animationDelay: "-48s", animationDuration: "120s" }}>
             <span className="inline-block -scale-x-100">🐻</span>
           </span>
+          <span className="bear-walk absolute bottom-[18%] text-[30px]" style={{ animationDelay: "-70s", animationDuration: "105s" }}>
+            🐻
+          </span>
+          <span className="bear-walk bear-rtl absolute bottom-[25%] text-[26px]" style={{ animationDelay: "-20s", animationDuration: "140s" }}>
+            <span className="inline-block -scale-x-100">🐻</span>
+          </span>
+          <span className="bear-walk absolute bottom-[32%] text-[32px]" style={{ animationDelay: "-95s", animationDuration: "125s" }}>
+            🐻
+          </span>
           <span className="absolute right-[8%] bottom-[22%] text-[26px] opacity-90">🍯</span>
+          <span className="absolute left-[6%] bottom-[30%] text-[22px] opacity-90">🍯</span>
+          <span className="absolute left-[52%] bottom-[12%] text-[24px] opacity-90">🍯</span>
         </>
       )}
     </div>
