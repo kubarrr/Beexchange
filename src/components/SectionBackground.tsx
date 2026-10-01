@@ -52,16 +52,29 @@ function Bees({ flights }: { flights: Flight[] }) {
   );
 }
 
-function Honeycomb({ id, stroke, opacity, fill }: { id: string; stroke: string; opacity: number; fill?: string }) {
+// Same sześciokąty jak w plastrze miodu (bez dodatkowych linii), jeden kolor
+function HexCells() {
+  const r = 22;
+  const w = Math.sqrt(3) * r;
+  const hex = (cx: number, cy: number) =>
+    [-90, -30, 30, 90, 150, 210].map((a) => `${(cx + r * Math.cos((a * Math.PI) / 180)).toFixed(2)},${(cy + r * Math.sin((a * Math.PI) / 180)).toFixed(2)}`).join(" ");
+  const centers = [
+    [0, 0],
+    [w, 0],
+    [w / 2, 1.5 * r],
+    [0, 3 * r],
+    [w, 3 * r],
+  ];
   return (
     <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
       <defs>
-        <pattern id={id} width="56" height="100" patternUnits="userSpaceOnUse" patternTransform="scale(0.9)">
-          <path d="M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100" fill={fill ?? "none"} stroke={stroke} strokeWidth="2" />
-          <path d="M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34" fill="none" stroke={stroke} strokeWidth="2" />
+        <pattern id="hex-cells" width={w} height={3 * r} patternUnits="userSpaceOnUse">
+          {centers.map(([x, y], i) => (
+            <polygon key={i} points={hex(x, y)} fill="none" stroke="#e0a200" strokeOpacity="0.4" strokeWidth="2" />
+          ))}
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill={`url(#${id})`} opacity={opacity} />
+      <rect width="100%" height="100%" fill="url(#hex-cells)" />
     </svg>
   );
 }
@@ -118,8 +131,8 @@ export function SectionBackground() {
     <div aria-hidden="true" className="section-bg pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {variant === "hive" && (
         <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_10%,#ffe7a3_0%,#fff7e2_55%)]" />
-          <Honeycomb id="hex-hive" stroke="#e0a200" opacity={0.22} />
+          <div className="absolute inset-0 bg-[#fff4cf]" />
+          <HexCells />
           <Bees
             flights={[
               { y: 14, dur: 34, delay: -4 },
@@ -148,8 +161,8 @@ export function SectionBackground() {
       )}
       {variant === "honeycomb" && (
         <>
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,#fff3c4_0%,#fff7e2_60%)]" />
-          <Honeycomb id="hex-house" stroke="#e0a200" opacity={0.3} fill="#ffe58a" />
+          <div className="absolute inset-0 bg-[#fff4cf]" />
+          <HexCells />
         </>
       )}
       {variant === "flowers" && (

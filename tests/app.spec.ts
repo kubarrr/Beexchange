@@ -229,7 +229,11 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
   test("Mieszkania: pokój do przejęcia i prośba o sprawdzenie", async () => {
     await admin.from("profiles").update({ checks_housing: true }).eq("id", celina.id);
     await a.goto("/housing");
-    await expect(a.getByLabel("Szukaj miasta")).toHaveAttribute("placeholder", "Mediolan");
+    await expect(a.getByLabel("Szukaj miasta")).toHaveAttribute("placeholder", "Szukaj innego miasta");
+    await expect(a.getByText("Mediolan").first()).toBeVisible();
+    await a.getByLabel("Szukaj miasta").fill("Barcel");
+    await expect(a.getByRole("button", { name: /Barcelona/ }).first()).toBeVisible();
+    await a.getByLabel("Szukaj miasta").fill("");
     await a.getByRole("link", { name: "Dodaj pokój" }).click();
     await expect(a).toHaveURL(/\/housing\/new/);
     await a.getByLabel("Tytuł").fill("Pokój testowy przy Bocconi");

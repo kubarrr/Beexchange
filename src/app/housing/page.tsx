@@ -67,6 +67,14 @@ export default async function HousingPage({ searchParams }: PageProps<"/housing"
       ])
     : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
   const rooms = (roomRows ?? []) as unknown as Room[];
+  // Popularne miasta w wyszukiwarce: najwięcej wolnych pokoi
+  const { data: roomPlaces } = await supabase.from("rooms").select("country_code, city").eq("taken", false).limit(2000);
+  const byCity = new Map<string, { cc: string; city: string; n: number }>();
+  for (const r of roomPlaces ?? []) {
+    const k = `${r.country_code}:${r.city.toLowerCase()}`;
+    byCity.set(k, { cc: r.country_code, city: r.city, n: (byCity.get(k)?.n ?? 0) + 1 });
+  }
+  const popular = [...byCity.values()].sort((a, b) => b.n - a.n).slice(0, 8);
   const flatmates = (flatRows ?? []) as unknown as Person[];
   const checkers = (checkerRows ?? []) as unknown as Person[];
   const requests = (myReqs ?? []) as unknown as { id: number; checker_id: string; status: keyof typeof t.housing.statuses; checker: { full_name: string } | null }[];
@@ -100,7 +108,7 @@ export default async function HousingPage({ searchParams }: PageProps<"/housing"
         }
       />
 
-      <CitySearch locale={locale} current={city ? { cc, city } : null} mine={mine} basePath="/housing" extra={`tab=${tab}`} />
+      <CitySearch locale={locale} current={city ? { cc, city } : null} mine={mine} popular={popular} popularLabel={t.events.popularRooms} basePath="/housing" extra={`tab=${tab}`} />
 
       <details className="group rounded-[20px] border-2 border-honey bg-white p-4">
         <summary className="flex cursor-pointer list-none items-center gap-2 font-bold [&::-webkit-details-marker]:hidden">

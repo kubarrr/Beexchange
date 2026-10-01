@@ -56,6 +56,15 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
     .limit(300);
   const upcoming = (data ?? []) as EventRow[];
 
+  // Popularne miasta w wyszukiwarce: najwięcej nadchodzących wydarzeń
+  const byCity = new Map<string, { cc: string; city: string; n: number }>();
+  for (const e of upcoming) {
+    if (e.is_online || !e.city || !e.country_code) continue;
+    const k = `${e.country_code}:${e.city.toLowerCase()}`;
+    byCity.set(k, { cc: e.country_code, city: e.city, n: (byCity.get(k)?.n ?? 0) + 1 });
+  }
+  const popular = [...byCity.values()].sort((a, b) => b.n - a.n).slice(0, 8);
+
   // Wydarzenia są zawsze w konkretnym mieście (albo w zakładce Online Q&A)
   const events = (
     online ? upcoming.filter((e) => e.is_online) : city ? upcoming.filter((e) => !e.is_online && e.country_code === cc && (e.city ?? "").toLowerCase() === city.toLowerCase()) : []
@@ -81,7 +90,7 @@ export default async function EventsPage({ searchParams }: PageProps<"/events">)
 
       <div className="flex gap-2">
         <div className="min-w-0 flex-1">
-          <CitySearch locale={locale} current={!online && city ? { cc, city } : null} mine={mine} basePath="/events" />
+          <CitySearch locale={locale} current={!online && city ? { cc, city } : null} mine={mine} popular={popular} popularLabel={t.events.popularEvents} basePath="/events" />
         </div>
         <Link href={online ? "/events" : "/events?tab=online"} aria-pressed={online} className={`chip min-h-12 shrink-0 ${online ? "chip-on" : ""}`}>
           <Globe size={15} /> {t.events.tabOnline}
