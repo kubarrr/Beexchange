@@ -93,15 +93,16 @@ for (const [k, n] of [
   ["ania", "Bot Ania"],
   ["michal", "Bot Michał"],
   ["obcy", "Bot Obcy"],
+  ["giulia", "Bot Giulia"],
 ]) {
   bots[k] = await makeBot(k, n);
 }
-check("6 botów utworzonych i zalogowanych", Object.keys(bots).length === 6);
+check("7 botów utworzonych i zalogowanych", Object.keys(bots).length === 7);
 const { data: prof } = await bots.zuza.db.from("profiles").select("full_name").eq("id", bots.zuza.id).single();
 check("Profil tworzy się automatycznie przy rejestracji", prof?.full_name === "Bot Zuza");
 
 section("Wyszukiwarka uczelni");
-const { zuza, adam, kasia, ania, michal, obcy } = bots;
+const { zuza, adam, kasia, ania, michal, obcy, giulia } = bots;
 const SGH = await inst(zuza.db, "sgh", "SGH Warsaw School of Economics");
 const BOC = await inst(zuza.db, "bocconi", "Bocconi University");
 const POLIMI = await inst(zuza.db, "polimi", "Politecnico di Milano");
@@ -139,11 +140,11 @@ async function setProfile(b, { homes, exchanges, ...p }) {
   check(`${b.name}: zapis profilu (${homes.length} uczelnie, ${exchanges.length} wymiany)`, !error && up.data?.length === 1, error?.message);
 }
 const LIS = await inst(zuza.db, "university of lisbon", "University of Lisbon");
-const home = (i, study = "bachelor:3") => ({ institution_id: i.id, field_of_study: "Finanse", study });
+const home = (i, study = "bachelor:3", faculty = null) => ({ institution_id: i.id, field_of_study: "Finanse", study, faculty });
 await setProfile(zuza, { homes: [home(SGH)], exchanges: [{ institution_id: BOC.id, semester: "2026W", status: "going" }], passions: ["travel", "coffee", "volleyball"] });
 await setProfile(adam, { homes: [home(SGH)], exchanges: [{ institution_id: BOC.id, semester: "2026W", status: "going" }], passions: ["gym", "travel"] });
 await setProfile(kasia, {
-  homes: [home(SGH, "master:1"), home(UW, "bachelor:3")],
+  homes: [home(SGH, "master:1"), home(UW, "bachelor:3", "Wydział Nauk Ekonomicznych (WNE)")],
   exchanges: [
     { institution_id: BOC.id, semester: "2025W", status: "been" },
     { institution_id: LIS.id, semester: "2027S", status: "going" },
@@ -154,6 +155,7 @@ await setProfile(kasia, {
 await setProfile(ania, { homes: [home(UW)], exchanges: [{ institution_id: BOC.id, semester: "2026W", status: "going" }], passions: ["art"] });
 await setProfile(michal, { homes: [home(PW, "engineer:4")], exchanges: [{ institution_id: POLIMI.id, semester: "2026W", status: "going" }], passions: ["gaming"] });
 await setProfile(obcy, { homes: [home(UJ)], exchanges: [], open_to_questions: false });
+await setProfile(giulia, { homes: [home(BOC, "master:2")], exchanges: [], passions: ["art"], wants_buddy: true });
 {
   const { data } = await obcy.db.from("profiles").update({ full_name: "HACK" }).eq("id", zuza.id).select("id");
   check("Bezpieczeństwo: nie da się edytować cudzego profilu", (data ?? []).length === 0);
@@ -161,35 +163,64 @@ await setProfile(obcy, { homes: [home(UJ)], exchanges: [], open_to_questions: fa
   check("Bezpieczeństwo: nie da się dopisać wymiany komuś innemu", !!error);
 }
 
-section("Dopasowania (Rój)");
+section("Dopasowania (Rój): grupy dla całego świata");
 const botIds = new Set(Object.values(bots).map((b) => b.id));
 const { data: allEx } = await admin.from("exchanges").select("user_id, institution_id, semester, status, institutions(city, country_code)");
-const { data: allHomes } = await admin.from("profile_homes").select("user_id, institution_id");
+const { data: allHomes } = await admin.from("profile_homes").select("user_id, institution_id, institutions(city, country_code)");
+const { data: curSem } = await zuza.db.rpc("current_semester");
 const homeOf = (u, instId) => allHomes.some((h) => h.user_id === u && h.institution_id === instId);
-const outside = (pred) => new Set(allEx.filter((x) => !botIds.has(x.user_id) && pred(x)).map((x) => x.user_id)).size;
+const homeCc = (u, cc) => allHomes.some((h) => h.user_id === u && h.institutions?.country_code === cc);
+const homeCity = (u, cc, city) => allHomes.some((h) => h.user_id === u && h.institutions?.country_code === cc && h.institutions?.city?.toLowerCase() === city);
+const exUsers = (pred) => allEx.filter((x) => !botIds.has(x.user_id) && pred(x)).map((x) => x.user_id);
+const homeUsers = (pred) => allHomes.filter((h) => !botIds.has(h.user_id) && pred(h)).map((h) => h.user_id);
+const count = (...lists) => new Set(lists.flat()).size;
+const inMilan = (i) => i?.country_code === "IT" && i?.city?.toLowerCase() === "milan";
+const isCur = "2026W" === curSem;
 const extra = {
-  route: outside((x) => x.institution_id === BOC.id && x.semester === "2026W" && homeOf(x.user_id, SGH.id)),
-  semester: outside((x) => x.institution_id === BOC.id && x.semester === "2026W"),
-  alumni: outside((x) => x.institution_id === BOC.id && x.status === "been" && homeOf(x.user_id, SGH.id)),
-  city: outside((x) => x.institutions?.country_code === "IT" && x.institutions?.city?.toLowerCase() === "milan" && x.semester === "2026W"),
-  country: outside((x) => x.institutions?.country_code === "IT" && x.semester === "2026W"),
+  route: count(exUsers((x) => x.institution_id === BOC.id && x.semester === "2026W" && homeOf(x.user_id, SGH.id))),
+  nat_uni: count(exUsers((x) => x.institution_id === BOC.id && x.semester === "2026W" && homeCc(x.user_id, "PL"))),
+  nat_city: count(exUsers((x) => inMilan(x.institutions) && x.semester === "2026W" && homeCc(x.user_id, "PL"))),
+  nat_country: count(exUsers((x) => x.institutions?.country_code === "IT" && x.semester === "2026W" && homeCc(x.user_id, "PL"))),
+  semester: count(exUsers((x) => x.institution_id === BOC.id && x.semester === "2026W"), isCur ? homeUsers((h) => h.institution_id === BOC.id) : []),
+  city: count(exUsers((x) => inMilan(x.institutions) && x.semester === "2026W"), isCur ? homeUsers((h) => inMilan(h.institutions)) : []),
+  alumni: count(exUsers((x) => x.institution_id === BOC.id && x.status === "been" && homeOf(x.user_id, SGH.id))),
+  alumni_local: count(exUsers((x) => x.status === "been" && x.institutions?.country_code === "IT" && homeCity(x.user_id, "PL", "warsaw"))),
 };
 const also = (k) => (extra[k] ? ` (+${extra[k]} spoza testu)` : "");
 const { data: sugg, error: suggErr } = await zuza.db.rpc("group_suggestions");
-const byKind = Object.fromEntries((sugg ?? []).map((s) => [s.kind, s]));
-check("group_suggestions działa (5 rodzajów grup)", !suggErr && sugg?.length === 5, suggErr?.message ?? `${sugg?.length} propozycji`);
-check(`Trasa SGH → Bocconi · zima 26/27: 2 osoby (Zuza, Adam)${also("route")}`, byKind.route?.candidates === 2 + extra.route, `jest ${byKind.route?.candidates}`);
-check(`Semestr Bocconi · zima 26/27: 3 osoby (+ Ania z UW)${also("semester")}`, byKind.semester?.candidates === 3 + extra.semester, `jest ${byKind.semester?.candidates}`);
-check(`Absolwenci Bocconi z SGH: 1 osoba (Kasia)${also("alumni")}`, byKind.alumni?.candidates === 1 + extra.alumni, `jest ${byKind.alumni?.candidates}`);
-check(`Miasto Mediolan · zima 26/27: 4 osoby (+ Michał z Polimi)${also("city")}`, byKind.city?.candidates === 4 + extra.city, `jest ${byKind.city?.candidates}`);
-check(`Kraj Włochy · zima 26/27: 4 osoby${also("country")}`, byKind.country?.candidates === 4 + extra.country, `jest ${byKind.country?.candidates}`);
+const mineEx = (sugg ?? []).filter((s) => !s.is_local);
+const byKind = Object.fromEntries(mineEx.map((s) => [s.kind, s]));
+check("group_suggestions działa", !suggErr && mineEx.length >= 7, suggErr?.message ?? `${mineEx.length} propozycji`);
+const expect = (kind, label, bots) =>
+  check(`${label}: ${bots} os.${also(kind)}`, byKind[kind]?.candidates === bots + extra[kind], `jest ${byKind[kind]?.candidates}`);
+expect("route", "SGH → Bocconi · zima 26/27 (Zuza, Adam)", 2);
+expect("nat_uni", "Polacy · Bocconi · zima 26/27 (+ Ania z UW)", 3);
+expect("nat_city", "Polacy · Mediolan · zima 26/27 (+ Michał z Polimi)", 4);
+expect("nat_country", "Polacy · Włochy · zima 26/27", 4);
+expect("semester", "Wszyscy · Bocconi · zima 26/27 (+ lokalna Giulia, jeśli to bieżący semestr)", isCur ? 4 : 3);
+expect("city", "Wszyscy · Mediolan · zima 26/27", isCur ? 5 : 4);
+expect("alumni", "Absolwenci Bocconi z SGH (Kasia)", 1);
+check("Brak grupy „Wszyscy we Włoszech” (poziom kraju tylko dla narodowości)", !mineEx.some((s) => s.kind === "country"));
+check("Grupy jadących mają semestr, absolwenckie nie", mineEx.filter((s) => s.kind !== "alumni").every((s) => s.semester) && !byKind.alumni.semester);
+check("Narodowość grupy = kraj uczelni macierzystej (PL)", byKind.nat_uni?.nat_cc === "PL");
 {
   const { data } = await kasia.db.rpc("group_suggestions");
-  const exIds = new Set((data ?? []).map((s) => s.exchange_id));
+  const ex = (data ?? []).filter((s) => !s.is_local);
+  const exIds = new Set(ex.map((s) => s.exchange_id));
   check("Kasia (2 wymiany, 2 uczelnie): propozycje dla obu wymian", exIds.size === 2, `${exIds.size} wymian`);
-  check("Kasia: grupy trasy dla obu uczelni macierzystych", (data ?? []).filter((s) => s.kind === "route").length === 4);
+  check("Kasia: grupy trasy dla obu uczelni macierzystych", ex.filter((s) => s.kind === "route").length === 4);
+  const al = ex.find((s) => s.kind === "alumni_local");
+  check(`Kasia (była we Włoszech, uczelnia w Warszawie): „Alumni · Warszawa”: 1 os.${also("alumni_local")}`, al?.candidates === 1 + extra.alumni_local && al?.city === "Warsaw" && al?.country_code === "IT", `${al?.candidates} ${al?.city}`);
+  check("Alumni w mieście tylko dla tych, co już byli (Zuza nie dostaje)", !byKind.alumni_local);
+}
+{
+  const { data } = await giulia.db.rpc("group_suggestions");
+  check("Lokalna (Giulia z Bocconi, bez wymiany) dostaje tylko grupy lokalne", (data ?? []).length >= 2 && (data ?? []).every((s) => s.is_local));
+  const loc = (data ?? []).find((s) => s.kind === "semester");
+  const zSem = byKind.semester;
+  check("…i to tę samą grupę „Wszyscy · Bocconi” co przyjezdni w bieżącym semestrze", !isCur || loc?.key === zSem?.key, `${loc?.key} vs ${zSem?.key}`);
   const { data: none } = await obcy.db.rpc("group_suggestions");
-  check("Osoba bez wymiany nie dostaje propozycji grup", (none ?? []).length === 0);
+  check("Osoba szukająca wymiany dostaje tylko grupy swojego miasta (jako lokalna)", (none ?? []).every((s) => s.is_local));
 }
 
 section("Wyszukiwarka ludzi i filtry");
@@ -205,7 +236,23 @@ check("Tylko z mojej uczelni (SGH) → Adam, Kasia", same(await people(zuza, { p
 check("Tylko z mojej uczelni działa dla drugiej uczelni Kasi (UW)", (await people(ania, { p_home_only: true })).includes("Bot Kasia"));
 check("Pasja: kawa → Kasia", same(await people(zuza, { p_passion: "coffee" }), ["Bot Kasia"]));
 check("Bocconi + zima 26/27 → Adam, Ania", same(await people(zuza, { p_inst: BOC.id, p_sem: "2026W" }), ["Bot Adam", "Bot Ania"]));
-check("Chcą być buddy → Kasia", same(await people(zuza, { p_buddy: true }), ["Bot Kasia"]));
+check("Wydział: „Nauk Ekonom” → Kasia (UW, Wydział Nauk Ekonomicznych)", same(await people(zuza, { p_field: "Nauk Ekonom" }), ["Bot Kasia"]));
+{
+  const { data } = await zuza.db.rpc("faculties_at", { p_inst: UW.id });
+  check("Podpowiedzi wydziałów dla UW: wpis Kasi na początku, bez duplikatu", data?.[0]?.faculty === "Wydział Nauk Ekonomicznych (WNE)" && data.filter((r) => r.faculty.startsWith("Wydział Nauk Ekonomicznych")).length === 1);
+  const { data: fields } = await zuza.db.rpc("fields_at", { p_inst: SGH.id });
+  check("Podpowiedzi kierunków dla SGH: „Finanse” na pierwszym miejscu (najczęstszy)", fields?.[0]?.field === "Finanse");
+  check("Oficjalne kierunki SGH w podpowiedziach (Finanse i rachunkowość, Advanced Analytics)", ["Finanse i rachunkowość", "Advanced Analytics – Big Data"].every((n) => fields.some((r) => r.field === n)));
+  const sghFac = ((await zuza.db.rpc("faculties_at", { p_inst: SGH.id })).data ?? []).map((r) => r.faculty);
+  check("SGH bez wydziałów (studenci nie należą do kolegiów)", sghFac.length === 0, sghFac.slice(0, 3).join(" | "));
+  const pwFac = ((await zuza.db.rpc("faculties_at", { p_inst: PW.id })).data ?? []).map((r) => r.faculty);
+  check("Wydziały PW: 20 oficjalnych, w tym WEiTI i aktualna nazwa Wydziału Inżynierii Środowiska", pwFac.length >= 20 && pwFac.includes("Wydział Elektroniki i Technik Informacyjnych (WEiTI)") && pwFac.includes("Wydział Inżynierii Środowiska (WIŚ)"), `${pwFac.length}`);
+  const polimiFields = ((await zuza.db.rpc("fields_at", { p_inst: POLIMI.id })).data ?? []).map((r) => r.field);
+  check("Kierunki PoliMi: m.in. Computer Science and Engineering", polimiFields.includes("Computer Science and Engineering") && polimiFields.length >= 60, `${polimiFields.length}`);
+  const uwFac = ((await zuza.db.rpc("faculties_at", { p_inst: UW.id })).data ?? []).map((r) => r.faculty);
+  check("Wydziały UW: 25 oficjalnych", uwFac.length >= 25, `${uwFac.length}`);
+}
+check("Chcą być buddy → Giulia (lokalna), Kasia (absolwentka)", same(await people(zuza, { p_buddy: true }), ["Bot Giulia", "Bot Kasia"]));
 
 section("Grupy i czat grupowy");
 const { data: gid, error: jErr } = await zuza.db.rpc("join_group", { p_kind: "route", p_exchange_id: byKind.route.exchange_id, p_home_id: byKind.route.home_id });
@@ -246,11 +293,16 @@ await adam.db.removeChannel(channel);
   check("Bezpieczeństwo: nie da się pisać jako ktoś inny", !!e2);
 }
 {
-  const mSugg = ((await michal.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "country");
-  const { data: cg, error } = await michal.db.rpc("join_group", { p_kind: "country", p_exchange_id: mSugg.exchange_id });
-  check("Grupa krajowa (Włochy · zima 26/27) tworzy się", !error && cg, error?.message);
-  const zCountry = ((await zuza.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "country");
-  check("Zuza (Bocconi) widzi tę samą grupę krajową co Michał (Polimi)", zCountry?.group_id === cg && zCountry?.members === 1);
+  const mSugg = ((await michal.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "nat_country");
+  const { data: cg, error } = await michal.db.rpc("join_group", { p_kind: "nat_country", p_exchange_id: mSugg.exchange_id, p_home_id: mSugg.home_id });
+  check("Grupa „Polacy · Włochy · zima 26/27” tworzy się", !error && cg, error?.message);
+  const zCountry = ((await zuza.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "nat_country");
+  check("Zuza (SGH → Bocconi) widzi tę samą grupę co Michał (PW → Polimi)", zCountry?.group_id === cg && zCountry?.members === 1);
+  const gSugg = ((await giulia.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "city");
+  const { data: lg, error: lErr } = await giulia.db.rpc("join_group", { p_kind: "city", p_home_id: gSugg?.home_id });
+  check("Lokalna dołącza do „Wszyscy · Mediolan” (bieżący semestr)", !lErr && lg, lErr?.message);
+  const { data: lm } = await admin.from("group_members").select("is_local, is_guest").eq("group_id", lg).eq("user_id", giulia.id).single();
+  check("…i jest oznaczona jako lokalna, nie gość", lm?.is_local === true && lm?.is_guest === false);
 }
 {
   const { data } = await zuza.db.rpc("group_suggestions");
@@ -282,10 +334,11 @@ section("Odkrywanie grup, goście, zakładanie grup");
   check("Nie da się założyć grupy dla nieistniejącego miasta", !!bad);
   const { data: c3, error: cErr3 } = await obcy.db.rpc("create_group", { p_kind: "semester", p_sem: "2027S", p_inst: BOC.id });
   check("Zakładanie grupy uczelni: Bocconi · lato 26/27", !cErr3 && c3, cErr3?.message);
-  const { data: c4, error: cErr4 } = await obcy.db.rpc("create_group", { p_kind: "country", p_sem: "2027S", p_cc: "PT" });
-  check("Zakładanie grupy kraju: Portugalia · lato 26/27", !cErr4 && c4, cErr4?.message);
-  const kCountry = ((await kasia.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "country" && s.country_code === "PT");
-  check("Kasia (leci do Lizbony latem) dostaje tę grupę w swoich dopasowaniach", kCountry?.group_id === c4 && kCountry?.members === 1);
+  const { error: cErr4 } = await obcy.db.rpc("create_group", { p_kind: "country", p_sem: "2027S", p_cc: "PT" });
+  check("Nie da się założyć grupy „wszyscy w kraju” (kończymy na mieście)", !!cErr4);
+  const { data: c5 } = await obcy.db.rpc("create_group", { p_kind: "city", p_sem: "2027S", p_cc: "PT", p_city: "Lisbon" });
+  const kCity = ((await kasia.db.rpc("group_suggestions")).data ?? []).find((s) => s.kind === "city" && s.country_code === "PT");
+  check("Kasia (leci do Lizbony latem) dostaje założoną grupę „Wszyscy · Lizbona”", kCity?.group_id === c5 && kCity?.members === 1);
 }
 
 section("Buddy");
@@ -359,7 +412,7 @@ section("Wydarzenia");
 const future = new Date(Date.now() + 7 * 86400000).toISOString();
 const { data: ev, error: evErr } = await kasia.db
   .from("events")
-  .insert({ title: "Zjazd testowy absolwentów", starts_at: future, city: "Warszawa", country_code: "PL", audience: "alumni", created_by: kasia.id })
+  .insert({ title: "Zjazd testowy absolwentów", starts_at: future, city: "Warsaw", country_code: "PL", audience: "alumni", created_by: kasia.id })
   .select("id")
   .single();
 check("Tworzenie wydarzenia", !evErr && ev, evErr?.message);
@@ -417,12 +470,13 @@ async function page(bot, path, expect) {
     check(`${path} (${bot.name})`, false, `serwer nie odpowiada (${e.message}); czy działa npm run dev?`);
   }
 }
-await page(zuza, "/roj", ["SGH → Bocconi"]);
+await page(zuza, "/roj", ["SGH → Bocconi", "Polacy · Bocconi", "Bot Giulia"]);
+await page(giulia, "/roj", ["Przyjezdni u Ciebie", "Wszyscy · Bocconi"]);
 await page(obcy, "/roj");
 await page(zuza, "/ludzie", ["Bot Kasia"]);
 await page(zuza, "/ludzie?seg=been&home=1", ["Bot Kasia"]);
 await page(zuza, "/ludzie?ex=all&cc=IT&city=Milan", ["Bot Michał"]);
-await page(kasia, "/roj", ["Bocconi", "Lisbon"]);
+await page(kasia, "/roj", ["Bocconi", "Lizbona", "Alumni · Warszawa"]);
 await page(zuza, `/ludzie?ex=all&passion=coffee`, ["Bot Kasia"]);
 await page(zuza, `/u/${kasia.id}`, ["Bot Kasia"]);
 await page(zuza, `/grupy/${gid}`, ["Hej, szukamy razem mieszkania?"]);

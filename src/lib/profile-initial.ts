@@ -7,9 +7,9 @@ export function toProfileFormInitial(p: MyProfile): ProfileFormInitial {
     full_name: p.full_name,
     avatar_url: p.avatar_url,
     homes: homes.length
-      ? homes.map((h) => ({ inst: h.institution, field: h.field_of_study, study: h.study ?? "" }))
+      ? homes.map((h) => ({ inst: h.institution, field: h.field_of_study, study: h.study ?? "", faculty: h.faculty ?? "" }))
       : p.home
-        ? [{ inst: p.home, field: p.field_of_study, study: p.study_year ?? "" }]
+        ? [{ inst: p.home, field: p.field_of_study, study: p.study_year ?? "", faculty: "" }]
         : [],
     exchanges: (p.exchanges ?? []).map((x) => ({ inst: x.institution, semester: x.semester, status: x.status })),
     passions: p.passions ?? [],

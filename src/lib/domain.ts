@@ -34,8 +34,13 @@ export function countryName(code: string | null | undefined, locale: Locale) {
 }
 
 // Semestr zapisujemy jako kod: "2026W" = zima 2026/27, "2027S" = lato 2026/27
+// Absolwenci sprzed 2023 wybierają jedną opcję zamiast długiej listy starych semestrów
+export const EARLIER_SEMESTER = "2000W";
+const FIRST_LISTED_YEAR = 2023;
+
 export function semesterLabel(code: string | null | undefined, t: Dictionary) {
   if (!code) return "";
+  if (code === EARLIER_SEMESTER) return t.semester.earlier;
   const m = /^(\d{4})([WS])$/.exec(code);
   if (!m) return code;
   const year = Number(m[1]);
@@ -67,9 +72,10 @@ export function stageOf(status: Status, semester: string | null | undefined): St
 export function semesterOptions(now = new Date()) {
   const y = now.getFullYear();
   const codes: string[] = [];
-  for (let start = y + 1; start >= y - 4; start--) {
+  for (let start = y + 1; start >= FIRST_LISTED_YEAR; start--) {
     codes.push(`${start + 1}S`, `${start}W`);
   }
+  codes.push(`${FIRST_LISTED_YEAR}S`, EARLIER_SEMESTER);
   return codes;
 }
 

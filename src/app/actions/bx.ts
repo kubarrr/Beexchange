@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { INSTITUTION_FIELDS, type Institution } from "@/lib/domain";
 import { PASSION_KEYS } from "@/lib/i18n/dictionaries";
 
-export type HomeInput = { institution_id: number; field_of_study: string; study: string };
+export type HomeInput = { institution_id: number; field_of_study: string; study: string; faculty?: string };
 export type ExchangeInput = { institution_id: number; semester: string; status: "going" | "been" };
 
 export type ProfileInput = {
@@ -36,6 +36,7 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
       user_id: userId,
       institution_id: h.institution_id,
       field_of_study: clip(h.field_of_study, 120),
+      faculty: clip(h.faculty, 120) || null,
       study: STUDY.test(h.study ?? "") ? h.study : null,
       position,
     }));
@@ -67,7 +68,7 @@ export async function saveProfile(input: ProfileInput): Promise<{ ok: true } | {
     languages: (input.languages ?? []).filter((l) => LANG.test(l)).slice(0, 8),
     bio: clip(input.bio, 1000),
     open_to_questions: !!input.open_to_questions,
-    wants_buddy: been.length > 0 && !!input.wants_buddy,
+    wants_buddy: !!input.wants_buddy,
     onboarded: true,
   };
   if (input.avatar_url !== undefined) update.avatar_url = input.avatar_url;
@@ -113,7 +114,7 @@ export async function addInstitution(input: { name: string; country_code: string
 
 export async function joinGroup(formData: FormData) {
   const kind = String(formData.get("kind"));
-  const exchangeId = Number(formData.get("exchange_id"));
+  const exchangeId = Number(formData.get("exchange_id")) || null;
   const homeId = Number(formData.get("home_id")) || null;
   const { supabase } = await requireUser("/roj");
   const { data, error } = await supabase.rpc("join_group", { p_kind: kind, p_exchange_id: exchangeId, p_home_id: homeId });

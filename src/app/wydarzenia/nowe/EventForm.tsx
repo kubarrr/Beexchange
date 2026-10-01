@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { cityName } from "@/lib/cities";
 import { createEvent } from "@/app/actions/bx";
 import { Switch } from "@/components/bx";
 import { COUNTRY_CODES } from "@/components/InstitutionPicker";
@@ -12,6 +14,22 @@ export function EventForm({ locale, defaultCountry }: { locale: Locale; defaultC
   const [online, setOnline] = useState(false);
   // Godzinę z pola zamieniamy na czas UTC w przeglądarce, z uwzględnieniem czasu letniego/zimowego w dniu wydarzenia
   const [startsAt, setStartsAt] = useState("");
+  // Miasta z bazy uczelni wybranego kraju (zapisujemy nazwę z bazy, wyświetlamy po polsku w wersji PL)
+  const [country, setCountry] = useState(defaultCountry);
+  const [cities, setCities] = useState<{ c: string; n: string }[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    createClient()
+      .rpc("cities_in_country", { p_cc: country })
+      .then(({ data }) => {
+        if (!alive) return;
+        const list = ((data ?? []) as { city: string }[]).map(({ city }) => ({ c: city, n: cityName(city, locale) }));
+        setCities(list.sort((a, b) => a.n.localeCompare(b.n, locale)));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [country, locale]);
 
   return (
     <form action={createEvent} className="space-y-4">
@@ -37,12 +55,8 @@ export function EventForm({ locale, defaultCountry }: { locale: Locale; defaultC
       {!online && (
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block space-y-1.5">
-            <span className="label-caps">{t.events.fCity}</span>
-            <input name="city" required className="field" />
-          </label>
-          <label className="block space-y-1.5">
             <span className="label-caps">{t.events.fCountry}</span>
-            <select name="country_code" defaultValue={defaultCountry} className="field">
+            <select name="country_code" value={country} onChange={(e) => setCountry(e.target.value)} className="field">
               {COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) }))
                 .sort((a, b) => a.n.localeCompare(b.n, locale))
                 .map(({ c, n }) => (
@@ -50,6 +64,19 @@ export function EventForm({ locale, defaultCountry }: { locale: Locale; defaultC
                     {n}
                   </option>
                 ))}
+            </select>
+          </label>
+          <label className="block space-y-1.5">
+            <span className="label-caps">{t.events.fCity}</span>
+            <select name="city" required className="field" defaultValue="" key={country}>
+              <option value="" disabled>
+                {cities === null ? "…" : t.events.fCityPick}
+              </option>
+              {(cities ?? []).map(({ c, n }) => (
+                <option key={c} value={c}>
+                  {n}
+                </option>
+              ))}
             </select>
           </label>
           <label className="block space-y-1.5 sm:col-span-2">

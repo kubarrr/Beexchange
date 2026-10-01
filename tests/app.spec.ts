@@ -153,8 +153,9 @@ test.describe.serial("BeeXchange w przeglądarce (telefon 390×844)", () => {
     await a.goto("/wydarzenia/nowe");
     await a.getByLabel("Nazwa").fill("Testowe aperitivo");
     await a.getByLabel("Kiedy").fill("2026-12-12T19:30");
-    await a.getByLabel("Miasto").fill("Mediolan");
     await a.getByLabel("Kraj").selectOption("IT");
+    await expect(a.getByLabel("Miasto").locator("option", { hasText: "Mediolan" })).toHaveCount(1);
+    await a.getByLabel("Miasto").selectOption({ label: "Mediolan" });
     await a.getByRole("button", { name: "Opublikuj wydarzenie" }).click();
     await expect(a).toHaveURL(/\/wydarzenia$/);
     const card = a.locator("article", { hasText: "Testowe aperitivo" });

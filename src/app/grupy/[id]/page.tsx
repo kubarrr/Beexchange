@@ -19,22 +19,23 @@ export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
 
   const { data: group } = await supabase
     .from("groups")
-    .select(`id, kind, key, city, country_code, semester, home:institutions!groups_home_institution_id_fkey(${INSTITUTION_FIELDS}), exchange:institutions!groups_exchange_institution_id_fkey(${INSTITUTION_FIELDS})`)
+    .select(`id, kind, key, city, country_code, nat_cc, semester, home:institutions!groups_home_institution_id_fkey(${INSTITUTION_FIELDS}), exchange:institutions!groups_exchange_institution_id_fkey(${INSTITUTION_FIELDS})`)
     .eq("id", id)
     .maybeSingle();
   if (!group) notFound();
 
   const { data: memberRows } = await supabase
     .from("group_members")
-    .select("user_id, is_guest, profiles(id, full_name, avatar_url, wants_buddy, status)")
+    .select("user_id, is_guest, is_local, profiles(id, full_name, avatar_url, wants_buddy, status)")
     .eq("group_id", id)
     .order("joined_at");
   const members: Record<string, Member> = {};
   const list = (memberRows ?? []).map((r) => ({
     ...(r.profiles as unknown as { id: string; full_name: string; avatar_url: string | null; wants_buddy: boolean; status: string }),
     guest: r.is_guest,
+    local: r.is_local,
   }));
-  for (const m of list) members[m.id] = { id: m.id, full_name: m.full_name, buddy: m.wants_buddy && m.status === "been", guest: m.guest };
+  for (const m of list) members[m.id] = { id: m.id, full_name: m.full_name, buddy: m.wants_buddy, guest: m.guest, local: m.local };
   const isMember = !!members[userId];
   // Do grupy pasującej do mojej wymiany dołączam normalnie, do każdej innej jako gość
   const match = isMember ? null : (((await supabase.rpc("group_suggestions")).data ?? []) as Suggestion[]).find((s) => s.key === group.key);
@@ -52,6 +53,7 @@ export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
       exchange: group.exchange as unknown as Institution | null,
       city: group.city,
       country_code: group.country_code,
+      nat_cc: group.nat_cc,
       semester: group.semester,
     },
     t,
@@ -93,6 +95,7 @@ export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
               {m.id === userId ? t.chats.you : m.full_name.split(" ")[0]}
               {members[m.id].buddy && " · 🧸 buddy"}
               {members[m.id].guest && ` · ${t.group.guest}`}
+              {members[m.id].local && ` · ${t.groups.local}`}
             </Link>
           ))}
         </div>
@@ -106,7 +109,7 @@ export default async function GroupPage({ params }: PageProps<"/grupy/[id]">) {
           {match ? (
             <form action={joinGroup}>
               <input type="hidden" name="kind" value={match.kind} />
-              <input type="hidden" name="exchange_id" value={match.exchange_id} />
+              {match.exchange_id && <input type="hidden" name="exchange_id" value={match.exchange_id} />}
               {match.home_id && <input type="hidden" name="home_id" value={match.home_id} />}
               <button className="btn-primary">{t.common.join}</button>
             </form>

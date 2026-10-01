@@ -60,6 +60,7 @@ const I = {
   SAP: await byName("Sapienza University of Rome"),
   AGH: await byName("AGH University of Krakow"),
   DELFT: await byName("Delft University of Technology"),
+  TUM: await byName("Technical University of Munich"),
 };
 
 // ---------- ludzie ----------
@@ -80,6 +81,10 @@ const PEOPLE = [
     bio: "Lecę na Polimi w lutym. Szukam buddy'ego i mieszkania!" },
   { key: "michal", name: "Michał Szymański", homes: [["AGH", "Automatyka i robotyka", "engineer:4"]], ex: [["POLIMI", "2027S", "going"]], passions: ["mountains", "skiing", "tech"], langs: ["pl:native", "en:C1"], buddy: false,
     bio: "AGH → Polimi, lato 2026/27." },
+  { key: "giulia", name: "Giulia Bianchi", homes: [["POLIMI", "Ingegneria Informatica", "master:2"]], ex: [], passions: ["coffee", "art", "travel"], langs: ["it:native", "en:C1", "pl:A1"], buddy: true,
+    bio: "Ciao! Studiuję na Polimi i pomagam przyjezdnym. Pokażę Ci Città Studi i najlepsze aperitivo." },
+  { key: "lucas", name: "Lucas Müller", homes: [["TUM", "Informatik", "master:1"]], ex: [["POLIMI", "2026W", "going"]], passions: ["football", "mountains", "music"], langs: ["de:native", "en:C1", "it:A2"], buddy: false,
+    bio: "Erasmus at Polimi this winter. Looking for people to explore Milan with!" },
   { key: "ania", name: "Ania Dąbrowska", homes: [["PW", "Data Science", "bachelor:2"]], ex: [], passions: ["languages", "travel", "dance"], langs: ["pl:native", "en:B2", "es:A2"], buddy: false,
     bio: "Waham się między Mediolanem a Barceloną. Pomożecie wybrać?" },
 ];
@@ -118,9 +123,9 @@ console.log(`Utworzono ${PEOPLE.length} osób pokazowych.`);
 
 // ---------- grupy z rozmowami (klucze jak w funkcji group_key_for) ----------
 const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
-async function group(kind, key, fields, members, messages) {
+async function group(kind, key, fields, members, messages, locals = []) {
   const g = await must(admin.from("groups").upsert({ kind, key, ...fields }, { onConflict: "key" }).select("id").single(), `grupa ${key}`);
-  await must(admin.from("group_members").upsert(members.map((m) => ({ group_id: g.id, user_id: ids[m] })), { onConflict: "group_id,user_id" }), `członkowie ${key}`);
+  await must(admin.from("group_members").upsert(members.map((m) => ({ group_id: g.id, user_id: ids[m], is_local: locals.includes(m) })), { onConflict: "group_id,user_id" }), `członkowie ${key}`);
   if (messages.length) await must(admin.from("group_messages").insert(messages.map(([who, body, min]) => ({ group_id: g.id, sender_id: ids[who], body, created_at: ago(min) }))), `wiadomości ${key}`);
 }
 const { PW, POLIMI, BOC } = I;
@@ -142,7 +147,19 @@ await group("semester", `semester:${POLIMI.id}:2026S`, { exchange_institution_id
 await group("city", `city:IT:milan:2026S`, { city: "Milan", country_code: "IT", semester: "2026S" }, ["kasia", "pawel"], [
   ["kasia", "Mediolańska ekipa z lata, jak tam po powrocie?", 3000],
 ]);
-await group("country", `country:IT:2026S`, { country_code: "IT", semester: "2026S" }, ["tomek", "kasia"], [
+await group("nat_uni", `nat_uni:PL:${POLIMI.id}:2026S`, { exchange_institution_id: POLIMI.id, country_code: "IT", nat_cc: "PL", semester: "2026S" }, ["marta", "julia"], [
+  ["julia", "Polacy na Polimi z lata, kto wpada na zjazd w Warszawie?", 1300],
+]);
+await group("alumni_local", `alumni_local:IT:PL:warsaw`, { city: "Warsaw", country_code: "IT", nat_cc: "PL" }, ["marta", "julia", "pawel", "kasia"], [
+  ["kasia", "Alumni Włoch w Warszawie: robimy aperitivo w piątek?", 700],
+  ["pawel", "Jestem! Może Hala Koszyki?", 680],
+]);
+await group("semester", `semester:${POLIMI.id}:2026W`, { exchange_institution_id: POLIMI.id, country_code: "IT", semester: "2026W" }, ["ola", "lucas", "giulia"], [
+  ["giulia", "Welcome to Polimi! I'm a local student, ask me anything about Milan 🙂", 400],
+  ["lucas", "Thanks Giulia! Where do people usually meet for aperitivo?", 380],
+  ["ola", "Navigli! Robimy w sobotę wspólne wyjście, zapraszam też Lucasa", 360],
+], ["giulia"]);
+await group("nat_country", `nat_country:PL:IT:2026S`, { country_code: "IT", nat_cc: "PL", semester: "2026S" }, ["tomek", "kasia"], [
   ["tomek", "Włochy lato 25/26: robimy wieczór włoski w Krakowie?", 4000],
 ]);
 await group("route", `route:${PW.id}:${POLIMI.id}:2027S`, { home_institution_id: PW.id, exchange_institution_id: POLIMI.id, country_code: "IT", semester: "2027S" }, ["kuba"], [
@@ -176,10 +193,10 @@ const events = await must(
   admin
     .from("events")
     .insert([
-      { title: "Zjazd Polimi · lato 2025/26", description: "Spotkanie wszystkich, którzy byli na Politecnico w lecie. Przyjdźcie też, jeśli dopiero jedziecie!", starts_at: inDays(10, 19), is_online: false, city: "Warszawa", country_code: "PL", location: "Miejsce podamy zapisanym", audience: "alumni", created_by: ids.marta },
+      { title: "Zjazd Polimi · lato 2025/26", description: "Spotkanie wszystkich, którzy byli na Politecnico w lecie. Przyjdźcie też, jeśli dopiero jedziecie!", starts_at: inDays(10, 19), is_online: false, city: "Warsaw", country_code: "PL", location: "Miejsce podamy zapisanym", audience: "alumni", created_by: ids.marta },
       { title: "Q&A online: Mediolan od kuchni", description: "Absolwenci Polimi i Bocconi odpowiadają na pytania o mieszkania, kursy i życie w Mediolanie.", starts_at: inDays(5, 20), is_online: true, link: "https://meet.example.com/beexchange", audience: "going", created_by: ids.julia },
-      { title: "Aperitivo na Navigli", description: "Polacy w Mediolanie, zimowy semestr: poznajmy się!", starts_at: inDays(3, 18), is_online: false, city: "Mediolan", country_code: "IT", location: "Navigli", audience: "all", created_by: ids.ola },
-      { title: "Wieczór włoski w Krakowie", description: "Dla wszystkich po wymianie we Włoszech.", starts_at: inDays(21, 19), is_online: false, city: "Kraków", country_code: "PL", location: "Kazimierz", audience: "alumni", created_by: ids.tomek },
+      { title: "Aperitivo na Navigli", description: "Polacy w Mediolanie, zimowy semestr: poznajmy się!", starts_at: inDays(3, 18), is_online: false, city: "Milan", country_code: "IT", location: "Navigli", audience: "all", created_by: ids.ola },
+      { title: "Wieczór włoski w Krakowie", description: "Dla wszystkich po wymianie we Włoszech.", starts_at: inDays(21, 19), is_online: false, city: "Krakow", country_code: "PL", location: "Kazimierz", audience: "alumni", created_by: ids.tomek },
     ])
     .select("id, created_by"),
   "wydarzenia",

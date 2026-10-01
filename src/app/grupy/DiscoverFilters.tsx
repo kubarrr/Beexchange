@@ -6,7 +6,7 @@ import { cityName } from "@/lib/cities";
 import { countryName, semesterLabel, semesterOptions, type Institution } from "@/lib/domain";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
-export type DiscoverQuery = { tab: "all" | "semester" | "city" | "country"; cc: string; city: string; inst: Institution | null; sem: string };
+export type DiscoverQuery = { tab: "all" | "semester" | "city"; cc: string; city: string; inst: Institution | null; sem: string };
 
 function toUrl(q: DiscoverQuery) {
   const sp = new URLSearchParams();
@@ -26,7 +26,6 @@ export function DiscoverFilters({ locale, q, cities }: { locale: Locale; q: Disc
     ["all", t.discover.all],
     ["semester", t.discover.unis],
     ["city", t.discover.cities],
-    ["country", t.discover.countries],
   ] as const;
   const countries = COUNTRY_CODES.map((cc) => ({ cc, name: countryName(cc, locale) })).sort((a, b) => a.name.localeCompare(b.name, locale));
 
@@ -55,7 +54,7 @@ export function DiscoverFilters({ locale, q, cities }: { locale: Locale; q: Disc
               ))}
             </select>
           </label>
-          {q.tab !== "country" && (
+          {(
             <label className="space-y-1.5">
               <span className="label-caps">{t.people.city}</span>
               <select className="field" value={q.city} disabled={!q.cc} onChange={(e) => go({ city: e.target.value })}>

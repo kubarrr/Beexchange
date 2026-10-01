@@ -38,7 +38,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
     .from("profiles")
     .select(
       `id, full_name, avatar_url, status, semester, passions, languages, bio, open_to_questions, wants_buddy,
-       homes:profile_homes(institution_id, field_of_study, study, position, institution:institutions(${INSTITUTION_FIELDS})),
+       homes:profile_homes(institution_id, field_of_study, faculty, study, position, institution:institutions(${INSTITUTION_FIELDS})),
        exchanges(id, institution_id, semester, status, institution:institutions(${INSTITUTION_FIELDS}))`,
     )
     .eq("id", id)
@@ -61,7 +61,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
     for (const x of exchanges) if (mySem.has(x.semester) && !common.includes(semesterLabel(x.semester, t))) common.push(semesterLabel(x.semester, t));
     for (const x of p.passions ?? []) if (me.passions?.includes(x)) common.push(passionLabel(t, x));
   }
-  const isBuddy = p.wants_buddy && exchanges.some((x) => x.status === "been");
+  const isBuddy = p.wants_buddy;
   const mainHome = homes[0];
   const languages = Array.isArray(p.languages) ? p.languages : [];
 
@@ -90,6 +90,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
           {mainHome && (
             <p className="text-sm text-sand">
               {institutionShort(mainHome.institution, locale)}
+              {mainHome.faculty && ` · ${mainHome.faculty}`}
               {mainHome.field_of_study && ` · ${mainHome.field_of_study}`}
               {mainHome.study && ` · ${studyLabel(mainHome.study, t)}`}
             </p>
@@ -126,7 +127,7 @@ export default async function PersonPage({ params }: PageProps<"/u/[id]">) {
             <h2 className="label-caps">{t.profile.studies}</h2>
             {homes.map((h) => (
               <div key={h.institution_id} className="panel p-3.5">
-                <InstLine inst={h.institution} locale={locale} extra={[h.field_of_study, studyLabel(h.study, t)].filter(Boolean).join(" · ")} />
+                <InstLine inst={h.institution} locale={locale} extra={[h.faculty, h.field_of_study, studyLabel(h.study, t)].filter(Boolean).join(" · ")} />
               </div>
             ))}
           </section>

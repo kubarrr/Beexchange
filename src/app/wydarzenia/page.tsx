@@ -3,6 +3,8 @@ import { Globe, MapPin, Plus, Trash2 } from "lucide-react";
 import { deleteEvent, toggleAttend } from "@/app/actions/bx";
 import { EmptyState, Flag, PageTitle } from "@/components/bx";
 import { LocalDate } from "@/components/LocalDate";
+import { cityName } from "@/lib/cities";
+import { EventFilters } from "./EventFilters";
 import { requireProfile } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
@@ -24,40 +26,45 @@ type EventRow = {
   event_attendees: { user_id: string }[];
 };
 
-const TABS = ["foryou", "pl", "abroad", "online"] as const;
+const TABS = ["foryou", "all", "online"] as const;
 
 // Pokazujemy też wydarzenia, które zaczęły się do 3 godzin temu
 function recentCutoff() {
   return new Date(Date.now() - 3 * 3600 * 1000).toISOString();
 }
 type Tab = (typeof TABS)[number];
+const placeKey = (cc: string | null | undefined, city: string | null | undefined) => `${cc ?? ""}:${(city ?? "").toLowerCase()}`;
 
 export default async function EventsPage({ searchParams }: PageProps<"/wydarzenia">) {
   const sp = await searchParams;
   const tab: Tab = TABS.includes(sp.tab as Tab) ? (sp.tab as Tab) : "foryou";
+  const cc = typeof sp.cc === "string" && /^[A-Z]{2}$/.test(sp.cc) ? sp.cc : "";
+  const city = typeof sp.city === "string" ? sp.city.slice(0, 80) : "";
   const { supabase, userId, profile: me } = await requireProfile("/wydarzenia");
   const { t, locale } = await getDictionary();
 
-  let q = supabase
+  const { data } = await supabase
     .from("events")
     .select("id, title, description, starts_at, is_online, city, country_code, location, link, audience, created_by, event_attendees(user_id)")
     .gte("starts_at", recentCutoff())
     .order("starts_at")
-    .limit(60);
-  if (tab === "pl") q = q.eq("is_online", false).eq("country_code", "PL");
-  if (tab === "abroad") q = q.eq("is_online", false).neq("country_code", "PL");
-  if (tab === "online") q = q.eq("is_online", true);
-  let events = ((await q).data ?? []) as EventRow[];
+    .limit(300);
+  const upcoming = (data ?? []) as EventRow[];
 
-  if (tab === "foryou") {
-    // Wszystkie wydarzenia, najpierw te w kraju mojej wymiany i dopasowane do mojego etapu
-    const myCc = me.exchange?.country_code;
-    const score = (e: EventRow) =>
-      (e.country_code && e.country_code === myCc ? 2 : 0) + (e.audience === "all" || (e.audience === "alumni" ? me.status === "been" : me.status !== "been") ? 1 : 0);
-    events = events.sort((a, b) => score(b) - score(a) || a.starts_at.localeCompare(b.starts_at));
+  // Miejsca z wydarzeniami (do filtrów) i moje miasta (uczelnie i wymiany) do „Dla Ciebie”
+  const places = new Map<string, { cc: string; city: string }>();
+  for (const e of upcoming) if (!e.is_online && e.country_code && e.city) places.set(placeKey(e.country_code, e.city), { cc: e.country_code, city: e.city });
+  const mine = new Set([...me.homes.map((h) => h.institution), ...me.exchanges.map((x) => x.institution)].map((i) => placeKey(i.country_code, i.city)));
+
+  let events = upcoming;
+  if (tab === "foryou") events = upcoming.filter((e) => e.is_online || mine.has(placeKey(e.country_code, e.city)));
+  if (tab === "online") events = upcoming.filter((e) => e.is_online);
+  if (tab === "all") {
+    events = upcoming.filter((e) => (!cc || e.country_code === cc) && (!city || (e.city ?? "").toLowerCase() === city.toLowerCase()));
   }
+  events = events.slice(0, 60);
 
-  const tabLabel: Record<Tab, string> = { foryou: t.events.tabForYou, pl: t.events.tabPL, abroad: t.events.tabAbroad, online: t.events.tabOnline };
+  const tabLabel: Record<Tab, string> = { foryou: t.events.tabForYou, all: t.events.tabAll, online: t.events.tabOnline };
   const audienceTone = { all: "bg-sand", alumni: "bg-ink text-honey", going: "bg-honey" };
 
   return (
@@ -80,6 +87,8 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
         ))}
       </div>
 
+      {tab === "all" && <EventFilters locale={locale} cc={cc} city={city} places={[...places.values()]} />}
+
       {events.length === 0 && (
         <EmptyState
           action={
@@ -88,14 +97,14 @@ export default async function EventsPage({ searchParams }: PageProps<"/wydarzeni
             </Link>
           }
         >
-          {t.events.empty}
+          {tab === "foryou" ? t.events.forYouEmpty : t.events.empty}
         </EmptyState>
       )}
 
       {events.map((e, i) => {
         const going = e.event_attendees.some((a) => a.user_id === userId);
         const featured = i === 0;
-        const place = e.is_online ? t.events.online : [e.city, e.location].filter(Boolean).join(" · ");
+        const place = e.is_online ? t.events.online : [cityName(e.city, locale), e.location].filter(Boolean).join(" · ");
         return (
           <article key={e.id} className={featured ? "relative overflow-hidden rounded-[26px] bg-ink p-5 text-cream" : "panel p-3.5"}>
             <div className="flex gap-3.5">

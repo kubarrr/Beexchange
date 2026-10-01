@@ -37,14 +37,14 @@ export type MyProfile = {
   exchanges: ExchangeRow[];
 };
 
-export type HomeRow = { institution_id: number; field_of_study: string; study: string | null; position: number; institution: Institution };
+export type HomeRow = { institution_id: number; field_of_study: string; faculty: string | null; study: string | null; position: number; institution: Institution };
 export type ExchangeRow = { id: number; institution_id: number; semester: string; status: "going" | "been"; institution: Institution };
 
 export const MY_PROFILE_SELECT = `id, full_name, avatar_url, status, semester, field_of_study, study_year, passions, languages, bio,
   open_to_questions, wants_buddy, home_institution_id, exchange_institution_id,
   home:institutions!profiles_home_institution_id_fkey(${INSTITUTION_FIELDS}),
   exchange:institutions!profiles_exchange_institution_id_fkey(${INSTITUTION_FIELDS}),
-  homes:profile_homes(institution_id, field_of_study, study, position, institution:institutions(${INSTITUTION_FIELDS})),
+  homes:profile_homes(institution_id, field_of_study, faculty, study, position, institution:institutions(${INSTITUTION_FIELDS})),
   exchanges(id, institution_id, semester, status, institution:institutions(${INSTITUTION_FIELDS}))`;
 
 // Zalogowany użytkownik z uzupełnionym profilem, inaczej przekierowanie do logowania lub onboardingu

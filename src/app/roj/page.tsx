@@ -1,83 +1,74 @@
 import Link from "next/link";
-import { ArrowRight, CalendarRange, Compass, Flag as FlagIcon, GraduationCap, MapPin, Plus, Route } from "lucide-react";
+import { ArrowRight, Compass, Plus } from "lucide-react";
 import { joinGroup, requestBuddy } from "@/app/actions/bx";
 import { Avatar, EmptyState, Flag, InstBadge, StatusBadge } from "@/components/bx";
 import { CopyInvite } from "@/components/CopyInvite";
+import { GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
-import { institutionShort, semesterLabel, stageOf, type Institution } from "@/lib/domain";
 import { cityName } from "@/lib/cities";
-import { groupTitle, groupWhy, type GroupKind, type Suggestion } from "@/lib/groups";
+import { institutionShort, semesterLabel, stageOf, type Institution } from "@/lib/domain";
+import { groupTitle, groupWhy, type Suggestion } from "@/lib/groups";
 import { getDictionary } from "@/lib/i18n";
 import { localizedTitle } from "@/lib/i18n/meta";
 
 export const generateMetadata = localizedTitle((t) => t.nav.swarm);
 
 type Mini = { id: string; full_name: string; avatar_url: string | null };
-
-const KIND_ICON = { route: Route, semester: CalendarRange, alumni: GraduationCap, city: MapPin, country: FlagIcon } as const;
-const KIND_TONE = { route: "bg-honey text-ink", semester: "bg-honey text-ink", alumni: "bg-ink text-honey", city: "bg-sand text-ink", country: "bg-sand text-ink" } as const;
+type Buddy = Mini & { home: Institution | null; local: boolean; semester: string | null };
+type Row = Suggestion & { others: number };
 
 export default async function SwarmPage() {
   const { supabase, userId, profile: me } = await requireProfile("/roj");
   const { t, locale } = await getDictionary();
   const firstName = me.full_name.split(" ")[0] || "";
 
-  if (!me.exchanges.length) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
-        <p className="text-sm font-medium text-muted">{t.swarm.hello(firstName)}</p>
-        <div className="honeycomb rounded-[28px] bg-honey p-6">
-          <h1 className="display text-3xl">{t.swarm.noExchangeTitle}</h1>
-          <p className="mt-2 max-w-md">{t.swarm.noExchangeLead}</p>
-          <Link href="/profil" className="btn-primary mt-5">
-            {t.swarm.noExchangeCta} <ArrowRight size={18} />
-          </Link>
-        </div>
-        <Link href="/ludzie" className="btn-outline">
-          {t.swarm.browsePeople}
-        </Link>
-        <Link href="/grupy" className="panel flex items-center gap-3.5 p-4 hover:border-ink">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ink text-honey">
-          <Compass size={22} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-bold">{t.discover.browse}</span>
-          <span className="block text-[13px] text-muted">{t.discover.browseLead}</span>
-        </span>
-        <ArrowRight size={18} />
-      </Link>
-      </div>
-    );
-  }
+  const exInsts = me.exchanges.map((x) => x.institution_id);
+  const BUDDY_FIELDS = "id, full_name, avatar_url, wants_buddy, home:institutions!profiles_home_institution_id_fkey(id, name, name_en, name_pl, acronym, country_code, city)";
 
-  const myInsts = me.exchanges.map((x) => x.institution_id);
-  const [{ data: sugg }, { data: buddyRows }, { data: sent }] = await Promise.all([
+  const [{ data: sugg }, { data: alumniBuddies }, { data: localBuddies }, { data: sent }] = await Promise.all([
     supabase.rpc("group_suggestions"),
-    supabase
-      .from("exchanges")
-      .select("institution_id, semester, profiles!inner(id, full_name, avatar_url, wants_buddy, home:institutions!profiles_home_institution_id_fkey(name, name_en, name_pl, acronym))")
-      .in("institution_id", myInsts)
-      .eq("status", "been")
-      .eq("profiles.wants_buddy", true)
-      .neq("user_id", userId)
-      .limit(6),
+    // Absolwenci moich uczelni zagranicznych
+    exInsts.length
+      ? supabase.from("exchanges").select(`semester, profiles!inner(${BUDDY_FIELDS})`).in("institution_id", exInsts).eq("status", "been").eq("profiles.wants_buddy", true).neq("user_id", userId).limit(6)
+      : Promise.resolve({ data: [] }),
+    // Lokalni studenci moich uczelni zagranicznych (np. Włosi z PoliMi)
+    exInsts.length
+      ? supabase.from("profile_homes").select(`profiles!inner(${BUDDY_FIELDS})`).in("institution_id", exInsts).eq("profiles.wants_buddy", true).neq("user_id", userId).limit(6)
+      : Promise.resolve({ data: [] }),
     supabase.from("buddy_requests").select("to_user").eq("from_user", userId),
   ]);
 
+  // Uczelnie potrzebne do tytułów grup
   const insts = new Map<number, Institution>();
   for (const x of me.exchanges) insts.set(x.institution_id, x.institution);
   for (const h of me.homes) insts.set(h.institution_id, h.institution);
 
-  const all = ((sugg ?? []) as Suggestion[])
-    .filter((s) => s.key)
+  const seen = new Set<string>();
+  const all: Row[] = ((sugg ?? []) as Suggestion[])
+    .filter((s) => s.key && !seen.has(s.key) && seen.add(s.key))
     .map((s) => ({ ...s, others: s.candidates - (s.self_counted ? 1 : 0) }))
     .filter((s) => s.others > 0 || s.members > (s.is_member ? 1 : 0));
 
   const info = (s: Suggestion) =>
-    groupTitle({ kind: s.kind, home: s.home_id ? insts.get(s.home_id) ?? null : null, exchange: insts.get(s.institution_id) ?? null, city: s.city, country_code: s.country_code, semester: s.semester }, t, locale);
+    groupTitle(
+      {
+        kind: s.kind,
+        home: s.home_id ? insts.get(s.home_id) ?? null : null,
+        exchange: insts.get(s.institution_id) ?? null,
+        city: s.city,
+        country_code: s.country_code,
+        nat_cc: s.nat_cc,
+        semester: s.semester,
+      },
+      t,
+      locale,
+    );
 
-  // Najlepsze dopasowanie: pierwsza grupa trasy lub semestru z najbliższej wymiany
-  const best = all.find((s) => s.kind === "route") ?? all.find((s) => s.kind === "semester") ?? all[0];
+  const exchangeRows = all.filter((s) => !s.is_local);
+  const localRows = all.filter((s) => s.is_local);
+  // Najlepsze dopasowanie: najbardziej konkretna grupa z najbliższej wymiany
+  const best = exchangeRows.find((s) => s.kind === "route") ?? exchangeRows.find((s) => s.kind === "nat_uni") ?? exchangeRows.find((s) => s.kind === "semester") ?? exchangeRows[0];
+
   let faces: Mini[] = [];
   if (best) {
     let q = supabase.from("exchanges").select("profiles!inner(id, full_name, avatar_url)").eq("institution_id", best.institution_id).neq("user_id", userId).limit(4);
@@ -87,13 +78,17 @@ export default async function SwarmPage() {
   }
 
   const sentTo = new Set((sent ?? []).map((r) => r.to_user));
-  const buddies = new Map<string, { id: string; full_name: string; avatar_url: string | null; home: Institution | null; semester: string }>();
-  for (const r of buddyRows ?? []) {
-    const p = r.profiles as unknown as { id: string; full_name: string; avatar_url: string | null; home: Institution | null };
-    if (!buddies.has(p.id)) buddies.set(p.id, { ...p, semester: r.semester });
+  const buddies = new Map<string, Buddy>();
+  for (const r of localBuddies ?? []) {
+    const p = r.profiles as unknown as Mini & { home: Institution | null };
+    buddies.set(p.id, { ...p, local: true, semester: null });
+  }
+  for (const r of alumniBuddies ?? []) {
+    const p = r.profiles as unknown as Mini & { home: Institution | null };
+    if (!buddies.has(p.id)) buddies.set(p.id, { ...p, local: false, semester: r.semester });
   }
 
-  const action = (s: Suggestion, dark = false) =>
+  const action = (s: Row, dark = false) =>
     s.is_member && s.group_id ? (
       <Link href={`/grupy/${s.group_id}`} className={dark ? "btn-honey min-h-12 px-5" : "btn-outline shrink-0"}>
         {t.common.joined} <ArrowRight size={16} />
@@ -101,7 +96,7 @@ export default async function SwarmPage() {
     ) : (
       <form action={joinGroup}>
         <input type="hidden" name="kind" value={s.kind} />
-        <input type="hidden" name="exchange_id" value={s.exchange_id} />
+        {s.exchange_id && <input type="hidden" name="exchange_id" value={s.exchange_id} />}
         {s.home_id && <input type="hidden" name="home_id" value={s.home_id} />}
         <button className={dark ? "btn-honey min-h-12 px-5 font-display text-base" : "btn-honey shrink-0 bg-ink text-honey hover:bg-black"}>
           {t.common.join} {dark && <ArrowRight size={18} />}
@@ -109,14 +104,11 @@ export default async function SwarmPage() {
       </form>
     );
 
-  const row = (s: Suggestion & { others: number }) => {
-    const Icon = KIND_ICON[s.kind as GroupKind];
+  const row = (s: Row) => {
     const { title, subtitle } = info(s);
     return (
       <div key={s.key} className="panel flex items-center gap-3.5 p-3.5">
-        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${KIND_TONE[s.kind as GroupKind]}`}>
-          <Icon size={22} strokeWidth={2.2} />
-        </span>
+        <GroupKindIcon kind={s.kind} />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 leading-tight font-bold">
             <Flag code={s.country_code} className="h-3.5 w-5" />
@@ -131,6 +123,19 @@ export default async function SwarmPage() {
     );
   };
 
+  const discoverCard = (
+    <Link href="/grupy" className="panel flex items-center gap-3.5 p-4 hover:border-ink">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ink text-honey">
+        <Compass size={22} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold">{t.discover.browse}</span>
+        <span className="block text-[13px] text-muted">{t.discover.browseLead}</span>
+      </span>
+      <ArrowRight size={18} />
+    </Link>
+  );
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
       <div>
@@ -138,7 +143,17 @@ export default async function SwarmPage() {
         <h1 className="display text-[32px] leading-[1.05]">{t.swarm.title}</h1>
       </div>
 
-      {best ? (
+      {!me.exchanges.length && (
+        <div className="honeycomb rounded-[28px] bg-honey p-6">
+          <h2 className="display text-2xl">{t.swarm.noExchangeTitle}</h2>
+          <p className="mt-2 max-w-md">{t.swarm.noExchangeLead}</p>
+          <Link href="/profil" className="btn-primary mt-5">
+            {t.swarm.noExchangeCta} <ArrowRight size={18} />
+          </Link>
+        </div>
+      )}
+
+      {best && (
         <section className="relative overflow-hidden rounded-[26px] bg-ink p-5 text-cream">
           <svg width="180" height="180" viewBox="0 0 100 100" className="absolute -top-10 -right-10 opacity-20" aria-hidden="true">
             <path d="M50 4 L90 27 L90 73 L50 96 L10 73 L10 27 Z" fill="none" stroke="#FFC52E" strokeWidth="5" />
@@ -166,14 +181,16 @@ export default async function SwarmPage() {
             {action(best, true)}
           </div>
         </section>
-      ) : (
+      )}
+
+      {me.exchanges.length > 0 && !best && (
         <EmptyState title={t.swarm.firstTitle} action={<CopyInvite label={t.swarm.invite} copiedLabel={t.swarm.copied} />}>
           {t.swarm.firstLead}
         </EmptyState>
       )}
 
       {me.exchanges.map((x) => {
-        const groups = all.filter((s) => s.exchange_id === x.id && s !== best);
+        const groups = exchangeRows.filter((s) => s.exchange_id === x.id && s !== best);
         return (
           <section key={x.id} className="space-y-3 pt-3">
             <div className="flex items-center gap-3">
@@ -192,16 +209,17 @@ export default async function SwarmPage() {
         );
       })}
 
-      <Link href="/grupy" className="panel flex items-center gap-3.5 p-4 hover:border-ink">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ink text-honey">
-          <Compass size={22} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-bold">{t.discover.browse}</span>
-          <span className="block text-[13px] text-muted">{t.discover.browseLead}</span>
-        </span>
-        <ArrowRight size={18} />
-      </Link>
+      {localRows.length > 0 && (
+        <section className="space-y-3 pt-3">
+          <div>
+            <h3 className="display text-lg">🏠 {t.groups.localSection}</h3>
+            <p className="text-[13px] text-muted">{t.groups.localLead}</p>
+          </div>
+          {localRows.map(row)}
+        </section>
+      )}
+
+      {discoverCard}
 
       <Link href="/profil" className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-sm font-semibold">
         <Plus size={16} /> {t.profile.addExchange}
@@ -219,8 +237,19 @@ export default async function SwarmPage() {
                 <Link href={`/u/${b.id}`} className="block truncate font-bold hover:underline">
                   {b.full_name}
                 </Link>
-                <p className="truncate text-[13px]">
-                  {b.home ? institutionShort(b.home, locale) : ""} · {semesterLabel(b.semester, t)}
+                <p className="flex min-w-0 items-center gap-1.5 truncate text-[13px]">
+                  {b.local ? (
+                    <>
+                      <Flag code={b.home?.country_code} className="h-3 w-[18px]" />
+                      <span className="truncate">
+                        {t.groups.local} · {b.home ? institutionShort(b.home, locale) : ""}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="truncate">
+                      {b.home ? institutionShort(b.home, locale) : ""} · {semesterLabel(b.semester, t)}
+                    </span>
+                  )}
                 </p>
               </div>
               {sentTo.has(b.id) ? (

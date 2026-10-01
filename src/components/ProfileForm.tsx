@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check, Compass, Eye, GraduationCap, Luggage, MapPinned, Plus, Trash2, X } from "lucide-react";
@@ -12,7 +13,7 @@ import { semesterLabel, semesterOptions, semesterPhase, type Institution } from 
 import { dictionaries, PASSION_KEYS, type Locale } from "@/lib/i18n/dictionaries";
 import { DEGREES, LANGUAGE_CODES, LANGUAGE_FLAGS, LEVELS, PASSION_EMOJI, languageName, parseLanguage, parseStudy, type Degree, type Level } from "@/lib/profile-options";
 
-export type HomeEntry = { inst: Institution | null; field: string; study: string };
+export type HomeEntry = { inst: Institution | null; field: string; study: string; faculty: string };
 export type ExchangeEntry = { inst: Institution | null; semester: string | null; status: "going" | "been" };
 export type ProfileFormInitial = {
   full_name: string;
@@ -39,7 +40,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
   const router = useRouter();
   const [p, setP] = useState<ProfileFormInitial>({
     ...initial,
-    homes: initial.homes.length ? initial.homes : [{ inst: null, field: "", study: "" }],
+    homes: initial.homes.length ? initial.homes : [{ inst: null, field: "", study: "", faculty: "" }],
   });
   const [stage, setStage] = useState<Stage | null>(mode === "edit" ? "going" : null);
   const [step, setStep] = useState(0);
@@ -54,7 +55,6 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
   const setExchange = (i: number, patch: Partial<ExchangeEntry>) => set({ exchanges: p.exchanges.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
 
   const exchangesValid = p.exchanges.every((x) => x.inst && x.semester);
-  const hasBeen = p.exchanges.some((x) => x.status === "been");
 
   function submit() {
     setError("");
@@ -62,7 +62,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
       const res = await saveProfile({
         full_name: p.full_name,
         avatar_url: p.avatar_url,
-        homes: p.homes.filter((h) => h.inst).map((h) => ({ institution_id: h.inst!.id, field_of_study: h.field, study: h.study })),
+        homes: p.homes.filter((h) => h.inst).map((h) => ({ institution_id: h.inst!.id, field_of_study: h.field, study: h.study, faculty: h.faculty })),
         exchanges: p.exchanges.filter((x) => x.inst && x.semester).map((x) => ({ institution_id: x.inst!.id, semester: x.semester!, status: x.status })),
         passions: p.passions,
         languages: p.languages,
@@ -116,10 +116,8 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
             </div>
           </div>
         )}
-        <label className="block space-y-1.5">
-          <span className="label-caps">{t.profile.field}</span>
-          <input className="field" value={h.field} placeholder={t.profile.fieldPh} onChange={(e) => setHome(i, { field: e.target.value })} />
-        </label>
+        <SuggestInput rpc="faculties_at" instId={h.inst?.id ?? null} label={t.profile.faculty} placeholder={t.profile.facultyPh} value={h.faculty} onChange={(faculty) => setHome(i, { faculty })} />
+        <SuggestInput rpc="fields_at" instId={h.inst?.id ?? null} label={t.profile.field} placeholder={t.profile.fieldPh} value={h.field} onChange={(field) => setHome(i, { field })} />
       </div>
     );
   };
@@ -128,7 +126,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
     <div className="space-y-5">
       {p.homes.map(homeEditor)}
       {p.homes.length < 4 && p.homes.every((h) => h.inst) && (
-        <button type="button" onClick={() => set({ homes: [...p.homes, { inst: null, field: "", study: "" }] })} className="btn-outline w-full border-dashed">
+        <button type="button" onClick={() => set({ homes: [...p.homes, { inst: null, field: "", study: "", faculty: "" }] })} className="btn-outline w-full border-dashed">
           <Plus size={16} /> {t.profile.addHome}
         </button>
       )}
@@ -297,7 +295,7 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
           </span>
           <Switch on={p.open_to_questions} />
         </button>
-        {hasBeen && (
+        {(
           <button type="button" onClick={() => set({ wants_buddy: !p.wants_buddy })} aria-pressed={p.wants_buddy} className="flex min-h-14 w-full items-center gap-3 text-left">
             <span className="min-w-0 flex-1">
               <span className="block font-semibold">{t.profile.buddy}</span>
@@ -433,5 +431,46 @@ export function ProfileForm({ locale, userId, initial, mode }: { locale: Locale;
         </button>
       </div>
     </div>
+  );
+}
+
+// Pole z podpowiedziami z tej samej uczelni (wydziały, kierunki): pierwsze wpisy ustalają nazwy dla reszty
+function SuggestInput({
+  rpc,
+  instId,
+  label,
+  placeholder,
+  value,
+  onChange,
+}: {
+  rpc: "faculties_at" | "fields_at";
+  instId: number | null;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const listId = useId();
+  const [options, setOptions] = useState<string[]>([]);
+  useEffect(() => {
+    if (!instId) return;
+    let alive = true;
+    createClient()
+      .rpc(rpc, { p_inst: instId })
+      .then(({ data }) => alive && setOptions(((data ?? []) as Record<string, string>[]).map((r) => Object.values(r)[0])));
+    return () => {
+      alive = false;
+    };
+  }, [rpc, instId]);
+  return (
+    <label className="block space-y-1.5">
+      <span className="label-caps">{label}</span>
+      <input className="field" list={listId} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <datalist id={listId}>
+        {options.map((o) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
+    </label>
   );
 }

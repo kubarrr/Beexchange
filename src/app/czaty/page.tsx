@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { CalendarRange, Flag as FlagIcon, GraduationCap, MapPin, Route } from "lucide-react";
 import { answerBuddy } from "@/app/actions/bx";
 import { Avatar, EmptyState, Flag, PageTitle } from "@/components/bx";
+import { GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
 import { groupTitle, type GroupKind } from "@/lib/groups";
@@ -11,7 +11,6 @@ import { localizedTitle } from "@/lib/i18n/meta";
 export const generateMetadata = localizedTitle((t) => t.nav.chats);
 
 type Person = { id: string; full_name: string; avatar_url: string | null };
-const KIND_ICON = { route: Route, semester: CalendarRange, alumni: GraduationCap, city: MapPin, country: FlagIcon } as const;
 
 export default async function ChatsPage() {
   const { supabase, userId } = await requireProfile("/czaty");
@@ -22,7 +21,7 @@ export default async function ChatsPage() {
     supabase
       .from("group_members")
       .select(
-        `groups(id, kind, city, country_code, semester, home:institutions!groups_home_institution_id_fkey(${INSTITUTION_FIELDS}), exchange:institutions!groups_exchange_institution_id_fkey(${INSTITUTION_FIELDS}),
+        `groups(id, kind, city, country_code, nat_cc, semester, home:institutions!groups_home_institution_id_fkey(${INSTITUTION_FIELDS}), exchange:institutions!groups_exchange_institution_id_fkey(${INSTITUTION_FIELDS}),
          group_messages(body, created_at))`,
       )
       .eq("user_id", userId)
@@ -40,7 +39,7 @@ export default async function ChatsPage() {
   const dot = (n: number | undefined) =>
     n ? <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-honey px-1.5 text-xs font-extrabold ring-2 ring-ink">{n > 99 ? "99+" : n}</span> : null;
 
-  type G = { id: number; kind: GroupKind; city: string | null; country_code: string | null; semester: string | null; home: Institution | null; exchange: Institution | null; group_messages: { body: string; created_at: string }[] };
+  type G = { id: number; kind: GroupKind; city: string | null; country_code: string | null; nat_cc: string | null; semester: string | null; home: Institution | null; exchange: Institution | null; group_messages: { body: string; created_at: string }[] };
   const groups = (memberships ?? [])
     .map((m) => m.groups as unknown as G)
     .filter(Boolean)
@@ -89,15 +88,12 @@ export default async function ChatsPage() {
         {groups.length ? (
           <div className="panel divide-y divide-sand overflow-hidden">
             {groups.map((g) => {
-              const Icon = KIND_ICON[g.kind];
               const { title, subtitle } = groupTitle(g, t, locale);
               const last = g.group_messages[0];
               const n = unread.get(`group:${g.id}`);
               return (
                 <Link key={g.id} href={`/grupy/${g.id}`} className="flex items-center gap-3 p-3.5 hover:bg-cream">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-ink text-honey">
-                    <Icon size={22} />
-                  </span>
+                  <GroupKindIcon kind={g.kind} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <p className="flex min-w-0 items-center gap-2 font-bold">

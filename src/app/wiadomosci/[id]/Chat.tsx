@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { listenForInserts } from "@/lib/supabase/live";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
 export type Message = { id: number; sender_id: string; body: string; created_at: string };
@@ -27,19 +28,18 @@ export function Chat({ locale, conversationId, userId, initialMessages }: { loca
     };
     const onVisible = () => document.visibilityState === "visible" && catchUp();
     document.addEventListener("visibilitychange", onVisible);
-    const channel = supabase
-      .channel(`conversation:${conversationId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload) => {
-        const msg = payload.new as Message;
+    const stop = listenForInserts<Message>(supabase, {
+      table: "messages",
+      filter: `conversation_id=eq.${conversationId}`,
+      onInsert: (msg) => {
         setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         if (msg.sender_id !== userId) void supabase.rpc("mark_conversation_read", { p_conversation: conversationId }).then(() => undefined);
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") catchUp();
-      });
+      },
+      onReady: catchUp,
+    });
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
-      supabase.removeChannel(channel);
+      stop();
     };
   }, [conversationId, userId]);
 

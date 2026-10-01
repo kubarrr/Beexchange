@@ -1,11 +1,11 @@
 """Buduje data/institutions.json z oficjalnego zrzutu rejestru ROR (licencja CC0).
 
-Pobiera najnowszy zrzut z Zenodo i wybiera aktywne uczelnie z Europy
-(plus Turcja i Cypr, które uczestniczą w Erasmusie, a GeoNames liczy je do Azji).
+Pobiera najnowszy zrzut z Zenodo i wybiera wszystkie aktywne uczelnie świata
+(ok. 30 tys.). Z flagą --europe tylko Europa plus Turcja i Cypr.
 
-Uruchom: python scripts/fetch-ror.py
+Uruchom: python scripts/fetch-ror.py [--europe]
 """
-import io, json, pathlib, urllib.request, zipfile
+import io, json, pathlib, sys, urllib.request, zipfile
 
 EXTRA_COUNTRIES = {"TR", "CY"}
 
@@ -52,7 +52,7 @@ def main():
         if o.get("status") != "active" or "education" not in o.get("types", []):
             continue
         loc = (o.get("locations") or [{}])[0].get("geonames_details", {})
-        if loc.get("continent_code") == "EU" or loc.get("country_code") in EXTRA_COUNTRIES:
+        if "--europe" not in sys.argv or loc.get("continent_code") == "EU" or loc.get("country_code") in EXTRA_COUNTRIES:
             rows.append(slim(o))
 
     rows.sort(key=lambda r: (r["cc"] or "", r["name"]))

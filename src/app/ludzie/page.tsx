@@ -23,6 +23,7 @@ type Row = {
   home: Institution | null;
   exchange: Institution | null;
   exchanges: { id: number }[];
+  homes: { faculty: string | null; position: number }[];
 };
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
@@ -73,7 +74,7 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
         `id, full_name, avatar_url, status, semester, field_of_study, wants_buddy, open_to_questions,
          home:institutions!profiles_home_institution_id_fkey(${INSTITUTION_FIELDS}),
          exchange:institutions!profiles_exchange_institution_id_fkey(${INSTITUTION_FIELDS}),
-         exchanges(id)`,
+         exchanges(id), homes:profile_homes(faculty, position)`,
       ),
     supabase.from("exchanges").select("institutions(city, country_code)").limit(2000),
   ]);
@@ -112,6 +113,10 @@ export default async function PeoplePage({ searchParams }: PageProps<"/ludzie">)
                 </div>
                 <p className="truncate text-[13px] text-muted">
                   {p.home ? institutionShort(p.home, locale) : ""}
+                  {(() => {
+                    const faculty = [...p.homes].sort((a, b) => a.position - b.position)[0]?.faculty;
+                    return faculty ? ` · ${faculty}` : "";
+                  })()}
                   {p.field_of_study && ` · ${p.field_of_study}`}
                 </p>
                 {p.exchange && (

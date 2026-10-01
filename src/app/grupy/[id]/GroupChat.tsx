@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { listenForInserts } from "@/lib/supabase/live";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
 export type GroupMessage = { id: number; sender_id: string; body: string; created_at: string };
-export type Member = { id: string; full_name: string; buddy: boolean; guest: boolean };
+export type Member = { id: string; full_name: string; buddy: boolean; guest: boolean; local: boolean };
 
 export function GroupChat({
   locale,
@@ -40,19 +41,18 @@ export function GroupChat({
     };
     const onVisible = () => document.visibilityState === "visible" && catchUp();
     document.addEventListener("visibilitychange", onVisible);
-    const channel = supabase
-      .channel(`group:${groupId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${groupId}` }, (payload) => {
-        const m = payload.new as GroupMessage;
+    const stop = listenForInserts<GroupMessage>(supabase, {
+      table: "group_messages",
+      filter: `group_id=eq.${groupId}`,
+      onInsert: (m) => {
         setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
         if (m.sender_id !== userId) void supabase.rpc("mark_group_read", { p_group: groupId }).then(() => undefined);
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") catchUp();
-      });
+      },
+      onReady: catchUp,
+    });
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
-      supabase.removeChannel(channel);
+      stop();
     };
   }, [groupId, userId]);
 
@@ -92,6 +92,7 @@ export function GroupChat({
                   {author?.full_name ?? "?"}
                   {author?.buddy && " · 🧸 buddy"}
                   {author?.guest && ` · ${t.group.guest}`}
+                  {author?.local && ` · ${t.groups.local}`}
                 </span>
               )}
               <div className={`rounded-[18px] px-3.5 py-2.5 text-[15px] leading-snug break-words whitespace-pre-line ${tone}`} title={new Date(m.created_at).toLocaleString(locale)}>

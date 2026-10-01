@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, CalendarRange, Flag as FlagIcon, GraduationCap, MapPin, Plus, Route } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { createGroup, joinGroupById } from "@/app/actions/bx";
 import { EmptyState, Flag, PageTitle } from "@/components/bx";
+import { GroupKindIcon } from "@/components/GroupKindIcon";
 import { requireProfile } from "@/lib/auth";
 import { INSTITUTION_FIELDS, formatRelative, type Institution } from "@/lib/domain";
 import { groupTitle, type GroupKind } from "@/lib/groups";
@@ -19,13 +20,13 @@ type Row = {
   exchange_institution_id: number | null;
   city: string | null;
   country_code: string | null;
+  nat_cc: string | null;
   semester: string | null;
   members: number;
   last_message_at: string | null;
   is_member: boolean;
 };
 
-const KIND_ICON = { route: Route, semester: CalendarRange, alumni: GraduationCap, city: MapPin, country: FlagIcon } as const;
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 
 export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">) {
@@ -33,7 +34,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
   const { supabase } = await requireProfile("/grupy");
   const { t, locale } = await getDictionary();
 
-  const tab = (["semester", "city", "country"].includes(str(sp.tab)) ? str(sp.tab) : "all") as DiscoverQuery["tab"];
+  const tab = (["semester", "city"].includes(str(sp.tab)) ? str(sp.tab) : "all") as DiscoverQuery["tab"];
   const cc = /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
   const city = str(sp.city).slice(0, 80);
   const sem = /^\d{4}[WS]$/.test(str(sp.sem)) ? str(sp.sem) : "";
@@ -44,7 +45,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
     supabase.rpc("discover_groups", {
       p_kind: tab === "all" ? null : tab,
       p_cc: tab === "semester" ? null : cc || null,
-      p_city: tab === "semester" || tab === "country" ? null : city || null,
+      p_city: tab === "semester" ? null : city || null,
       p_inst: inst?.id ?? null,
       p_sem: sem || null,
       lim: 40,
@@ -67,9 +68,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
       ? `semester:${inst.id}:${sem}`
       : sem && tab === "city" && cc && city
         ? `city:${cc}:${city.toLowerCase()}:${sem}`
-        : sem && tab === "country" && cc
-          ? `country:${cc}:${sem}`
-          : null;
+        : null;
   const canCreate = wantedKey && !groups.some((g) => g.key === wantedKey);
 
   return (
@@ -98,7 +97,6 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
       ) : (
         <div className="space-y-3">
           {groups.map((g) => {
-            const Icon = KIND_ICON[g.kind];
             const { title, subtitle } = groupTitle(
               {
                 kind: g.kind,
@@ -106,6 +104,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
                 exchange: g.exchange_institution_id ? insts.get(g.exchange_institution_id) ?? null : null,
                 city: g.city,
                 country_code: g.country_code,
+                nat_cc: g.nat_cc,
                 semester: g.semester,
               },
               t,
@@ -113,9 +112,7 @@ export default async function DiscoverPage({ searchParams }: PageProps<"/grupy">
             );
             return (
               <div key={g.id} className="panel flex items-center gap-3.5 p-3.5">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sand">
-                  <Icon size={22} />
-                </span>
+                <GroupKindIcon kind={g.kind} />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 leading-tight font-bold">
                     {g.country_code && <Flag code={g.country_code} className="h-3 w-[18px]" />}

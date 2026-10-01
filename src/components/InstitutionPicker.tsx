@@ -4,14 +4,12 @@ import { useEffect, useState, useTransition } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
 import { addInstitution } from "@/app/actions/bx";
 import { InstLine } from "@/components/bx";
+import { ALL_COUNTRY_CODES } from "@/lib/countries";
 import { countryName, type Institution } from "@/lib/domain";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
-// Kraje Erasmusa + kilka popularnych spoza programu
-export const COUNTRY_CODES = [
-  "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IS", "IE", "IT", "LV", "LI", "LT", "LU",
-  "MT", "NL", "MK", "NO", "PL", "PT", "RO", "RS", "SK", "SI", "ES", "SE", "TR", "CH", "GB", "UA", "US", "CA", "JP", "KR",
-];
+// Wszystkie kraje świata (lista z flag); posortowane po nazwie w języku użytkownika przy wyświetlaniu
+export const COUNTRY_CODES: readonly string[] = ALL_COUNTRY_CODES;
 
 export function InstitutionPicker({
   locale,
