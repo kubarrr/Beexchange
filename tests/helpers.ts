@@ -41,20 +41,10 @@ export async function inst(name: string) {
 }
 
 // Profil ustawiony bezpośrednio w bazie (dla osób, które nie przechodzą onboardingu w teście)
-// Bez „ex” to lokalny student bez wymiany (np. buddy na uczelni, na którą ktoś jedzie)
-
 export async function cleanup() {
-  const { data } = await admin.auth.admin.listUsers({ perPage: 500 });
+  // Konta testowe; ich profile i wymiany usuwają się razem z kontem
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const bots = data.users.filter((u) => u.email?.endsWith(`@${DOMAIN}`));
-  for (const b of bots) {
-    for (const bucket of ["avatars", "events", "rooms"]) {
-      const { data: files } = await admin.storage.from(bucket).list(b.id);
-      if (files?.length) await admin.storage.from(bucket).remove(files.map((f) => `${b.id}/${f.name}`));
-    }
-    await admin.auth.admin.deleteUser(b.id);
-  }
-  const { data: groups } = await admin.from("groups").select("id, group_members(count)");
-  const empty = (groups ?? []).filter((g) => !(g.group_members as { count: number }[])?.[0]?.count).map((g) => g.id);
-  if (empty.length) await admin.from("groups").delete().in("id", empty);
+  for (const b of bots) await admin.auth.admin.deleteUser(b.id);
   return bots.length;
 }
