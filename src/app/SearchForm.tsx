@@ -111,3 +111,27 @@ export function SearchForm({
     </form>
   );
 }
+
+// „Twój buddy” na Twojej uczelni: wystarczy wybrać uczelnię
+export function HomeUniForm({ locale, initial }: { locale: Locale; initial: Institution | null }) {
+  const t = dictionaries[locale];
+  const router = useRouter();
+  const [inst, setInst] = useState<Institution | null>(initial);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (inst) router.push(`/?tab=helper&mode=home&inst=${inst.id}`);
+      }}
+      className="panel space-y-4 p-4"
+    >
+      <div className="space-y-1.5">
+        <span className="label-caps">{t.simple.yourUni}</span>
+        <InstitutionPicker locale={locale} value={inst} onChange={setInst} prefer="PL" />
+      </div>
+      <button className="btn-primary min-h-12 w-full" disabled={!inst}>
+        <Search size={18} /> {t.simple.search}
+      </button>
+    </form>
+  );
+}

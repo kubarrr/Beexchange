@@ -53,7 +53,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Kto widzi Twoje dane",
         body: [
           [
-            "Twój wpis (imię lub ksywka, kontakty, uczelnie i semestry) widzą wyłącznie zalogowani użytkownicy serwisu. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Pomogą Ci”.",
+            "Twój wpis (imię lub ksywka, kontakty, uczelnie i semestry) widzą wyłącznie zalogowani użytkownicy serwisu. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Twój buddy”.",
             "Linki do Instagrama i Facebooka oraz numer WhatsApp podajesz dobrowolnie; prowadzą do usług tych firm, na których zasady prywatności nie mamy wpływu.",
             "Twojego adresu e-mail nie pokazujemy innym użytkownikom.",
           ],
@@ -137,7 +137,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Who can see your data",
         body: [
           [
-            "Your listing (name or nickname, contacts, universities and semesters) is visible only to signed-in users. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Can help you”.",
+            "Your listing (name or nickname, contacts, universities and semesters) is visible only to signed-in users. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Your buddy”.",
             "Instagram and Facebook links and your WhatsApp number are provided voluntarily; they lead to those companies' services, whose privacy rules we do not control.",
             "Your email address is never shown to other users.",
           ],

@@ -85,7 +85,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await shot(a, "s3-jada");
   });
 
-  test("Pomogą Ci: widać uczelnię macierzystą", async () => {
+  test("Twój buddy na uczelni wymiany: widać uczelnię macierzystą", async () => {
     await a.goto("/?tab=helper&cc=PL&city=Warsaw");
     const card = a.locator("article", { hasText: "Ola Testowa" });
     await expect(card).toContainText("Studiuje na Politechnika Warszawska");
@@ -94,10 +94,21 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await shot(a, "s4-pomoga");
   });
 
+  test("Twój buddy na Twojej uczelni: wystarczy wybrać uczelnię", async () => {
+    await a.goto("/?tab=helper");
+    await a.getByRole("link", { name: "Na Twojej uczelni" }).click();
+    await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).fill("politechnika warszawska");
+    await a.getByRole("button", { name: /Politechnika Warszawska/ }).first().click();
+    await a.getByRole("button", { name: "Szukaj" }).click();
+    await expect(a).toHaveURL(new RegExp(`mode=home&inst=${PW}`));
+    await expect(a.locator("article", { hasText: "Ola Testowa" })).toBeVisible();
+    await shot(a, "s5-buddy-moja-uczelnia");
+  });
+
   test("Wersja angielska", async () => {
     await a.getByRole("button", { name: "en", exact: true }).click();
     await expect(a.getByRole("heading", { name: "Find exchange people" })).toBeVisible();
-    await expect(a.getByRole("link", { name: "Can help you" })).toBeVisible();
+    await expect(a.getByRole("link", { name: "Your buddy" })).toBeVisible();
     await a.getByRole("button", { name: "pl", exact: true }).click();
   });
 });

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Onest } from "next/font/google";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { HiveBackground } from "@/components/HiveBackground";
 import { getDictionary } from "@/lib/i18n";
 import "./globals.css";
 
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={locale} className={`${onest.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
+        <HiveBackground />
         <Header />
         <main className="flex-1 pb-10">{children}</main>
         <footer className="border-t border-line py-6 text-center text-xs text-muted">

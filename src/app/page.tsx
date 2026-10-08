@@ -5,7 +5,7 @@ import { cityName } from "@/lib/cities";
 import { ALL_COUNTRY_CODES } from "@/lib/countries";
 import { INSTITUTION_FIELDS, countryName, institutionName, semesterLabel, semesterPhase, type Institution } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
-import { SearchForm } from "./SearchForm";
+import { HomeUniForm, SearchForm } from "./SearchForm";
 
 const TABS = ["going", "been", "helper"] as const;
 type Tab = (typeof TABS)[number];
@@ -31,12 +31,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const { t, locale } = await getDictionary();
 
   const tab: Tab = TABS.includes(str(sp.tab) as Tab) ? (str(sp.tab) as Tab) : "going";
-  const cc = /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
-  const city = str(sp.city).slice(0, 80);
-  const instId = Number(str(sp.inst)) || null;
-  const ready = !!cc && !!city;
-
+  // „Twój buddy”: na Twojej uczelni (wystarczy uczelnia) albo na uczelni wymiany (kraj, miasto, opcjonalnie uczelnia)
+  const mode: "home" | "host" = tab === "helper" && str(sp.mode) === "home" ? "home" : "host";
+  let instId = Number(str(sp.inst)) || null;
+  // Zalogowanemu podpowiadamy jego uczelnię macierzystą
+  if (mode === "home" && !instId && userId) {
+    instId = ((await supabase.from("simple_people").select("home_institution_id").eq("user_id", userId).maybeSingle()).data?.home_institution_id as number | null) ?? null;
+  }
   const inst = instId ? ((await supabase.from("institutions").select(INSTITUTION_FIELDS).eq("id", instId).maybeSingle()).data as Institution | null) : null;
+  const cc = mode === "home" ? (inst?.country_code ?? "") : /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
+  const city = mode === "home" ? (inst?.city ?? "") : str(sp.city).slice(0, 80);
+  const ready = !!cc && !!city && (mode === "host" || !!inst);
   const args = { p_kind: tab, p_cc: cc, p_city: city, p_inst: instId };
 
   // Zalogowani widzą osoby, niezalogowani tylko liczbę
@@ -55,7 +60,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   if (ids.length) for (const i of ((await supabase.from("institutions").select(INSTITUTION_FIELDS).in("id", ids)).data ?? []) as Institution[]) insts.set(i.id, i);
 
   const countries = ALL_COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) })).sort((a, b) => a.n.localeCompare(b.n, locale));
-  const tabHref = (k: Tab) => `/?${new URLSearchParams({ tab: k, ...(cc ? { cc } : {}), ...(city ? { city } : {}), ...(instId ? { inst: String(instId) } : {}) }).toString()}`;
+  const tabHref = (k: Tab, m: "home" | "host" = mode) =>
+    `/?${new URLSearchParams({ tab: k, ...(k === "helper" && m === "home" ? { mode: "home" } : {}), ...(m === "host" && cc ? { cc } : {}), ...(m === "host" && city ? { city } : {}), ...(instId ? { inst: String(instId) } : {}) }).toString()}`;
   const loginHref = `/login?next=${encodeURIComponent(tabHref(tab))}`;
 
   return (
@@ -79,9 +85,22 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </Link>
         ))}
       </div>
-      <p className="text-sm text-muted">{t.simple.tabLead[tab]}</p>
+      {tab === "helper" && (
+        <div className="flex gap-2">
+          {(["home", "host"] as const).map((m) => (
+            <Link key={m} href={tabHref("helper", m)} aria-current={mode === m ? "page" : undefined} className={`chip flex-1 justify-center ${mode === m ? "chip-on" : ""}`}>
+              {t.simple.buddyModes[m]}
+            </Link>
+          ))}
+        </div>
+      )}
+      <p className="text-sm text-muted">{tab === "helper" ? t.simple.buddyLead[mode] : t.simple.tabLead[tab]}</p>
 
-      <SearchForm key={`${cc}:${city}:${instId}`} locale={locale} tab={tab} initial={{ cc, city, inst }} countries={countries} />
+      {mode === "home" ? (
+        <HomeUniForm key={`home:${instId}`} locale={locale} initial={inst} />
+      ) : (
+        <SearchForm key={`${cc}:${city}:${instId}`} locale={locale} tab={tab} initial={{ cc, city, inst }} countries={countries} />
+      )}
 
       {!ready ? (
         <p className="rounded-2xl bg-sand px-4 py-3 text-sm">{t.simple.needPlace}</p>
@@ -127,7 +146,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                       </span>
                     </p>
                   )}
-                  {/* Uczelnia macierzysta tylko przy „Pomogą Ci” */}
+                  {/* Uczelnia macierzysta tylko przy „Twój buddy” */}
                   {tab === "helper" && home && (
                     <p className="flex min-w-0 items-start gap-1.5 text-[13px]">
                       <Flag code={home.country_code} className="mt-[3px] h-3 w-[18px]" />

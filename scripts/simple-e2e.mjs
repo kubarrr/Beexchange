@@ -120,7 +120,8 @@ async function page(path, expect = [], who = null, lang = "pl") {
   check(`${path}${who ? ` (${who.name})` : " (niezalogowany)"}`, res.status === 200 && !missing.length, res.status !== 200 ? `HTTP ${res.status} ${res.headers.get("location") ?? ""}` : `brak: ${missing.join(", ")}`);
   return html;
 }
-await page("/", ["Znajdź ludzi z wymiany", "Jadą", "Pomogą Ci"]);
+await page("/", ["Znajdź ludzi z wymiany", "Jadą", "Twój buddy"]);
+await page(`/?tab=helper&mode=home&inst=${PW}`, ["Bot Ola", "Na Twojej uczelni"], zosia);
 {
   const html = await page("/?tab=going&cc=IT&city=Milan", ["Zaloguj się przez Google"]);
   check("Niezalogowany nie widzi imion ani kontaktów", !html.includes("Bot Zosia") && !html.includes("bot.zosia"));
@@ -128,7 +129,7 @@ await page("/", ["Znajdź ludzi z wymiany", "Jadą", "Pomogą Ci"]);
 await page("/?tab=going&cc=IT&city=Milan", ["Bot Zosia", "instagram.com/bot.zosia"], giulia);
 {
   const html = await page("/?tab=helper&cc=PL&city=Warsaw", ["Bot Ola", "Studiuje na"], zosia);
-  check("Przy „Pomogą Ci” widać uczelnię macierzystą", html.includes("Politechnika Warszawska"));
+  check("Przy „Twój buddy” widać uczelnię macierzystą", html.includes("Politechnika Warszawska"));
 }
 {
   const html = await page("/?tab=going&cc=IT&city=Milan", ["Bot Zosia"], giulia);
