@@ -11,7 +11,7 @@ export async function setLocale(formData: FormData) {
   // Język zalogowanego użytkownika zapisujemy też w koncie, żeby maile przychodziły w tym języku
   const { supabase, userId } = await getCurrentUser();
   if (userId) {
-    await Promise.all([supabase.auth.updateUser({ data: { locale: lang } }), supabase.from("profiles").update({ locale: lang }).eq("id", userId)]);
+    await supabase.auth.updateUser({ data: { locale: lang } });
   }
   revalidatePath("/", "layout");
 }

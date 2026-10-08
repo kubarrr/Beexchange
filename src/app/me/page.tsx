@@ -13,15 +13,15 @@ export default async function MePage() {
   const { supabase, userId } = await requireUser("/me");
   const { t, locale } = await getDictionary();
 
-  const [{ data: person }, { data: entries }, { data: profile }] = await Promise.all([
+  const [{ data: person }, { data: entries }, { data: auth }] = await Promise.all([
     supabase.from("simple_people").select(`display_name, instagram, facebook, whatsapp, looking_for_housing, home:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).maybeSingle(),
     supabase.from("simple_entries").select(`kind, semester, inst:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).order("created_at"),
     // Imię z konta Google jako podpowiedź przy pierwszym wpisie
-    supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
+    supabase.auth.getUser(),
   ]);
 
   const initial: MeInitial = {
-    display_name: person?.display_name ?? profile?.full_name ?? "",
+    display_name: person?.display_name ?? String(auth.user?.user_metadata?.full_name ?? auth.user?.user_metadata?.name ?? ""),
     home: (person?.home as unknown as Institution | null) ?? null,
     instagram: person?.instagram ?? "",
     facebook: person?.facebook ?? "",
