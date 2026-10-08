@@ -37,9 +37,9 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
   test("Niezalogowany: wyszukiwanie pokazuje tylko liczbę osób", async () => {
     await g.goto("/");
     await g.getByRole("link", { name: /Są lub byli/ }).click();
-    await g.getByLabel("Kraj").selectOption({ label: "Włochy" });
-    await expect(g.getByLabel("Miasto").locator("option", { hasText: "Mediolan" })).toHaveCount(1);
-    await g.getByLabel("Miasto").selectOption({ label: "Mediolan" });
+    await g.getByLabel(/^Kraj/).selectOption({ label: "Włochy" });
+    await expect(g.getByLabel(/^Miasto/).locator("option", { hasText: "Mediolan" })).toHaveCount(1);
+    await g.getByLabel(/^Miasto/).selectOption({ label: "Mediolan" });
     await g.getByRole("button", { name: "Szukaj" }).click();
     await expect(g).toHaveURL(/tab=been/);
     await expect(g).toHaveURL(/cc=IT/);
@@ -99,6 +99,10 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
   test("Twój buddy na Twojej uczelni: wystarczy wybrać uczelnię", async () => {
     await a.goto("/?tab=helper");
     await a.getByRole("link", { name: "Na Twojej uczelni" }).click();
+    await expect(a).toHaveURL(/mode=home/);
+    // podpowiada własną uczelnię macierzystą (SGH) — zmieniamy na PW
+    await expect(a.getByText("Szkoła Główna Handlowa w Warszawie").first()).toBeVisible();
+    await a.getByRole("button", { name: "Zmień" }).click();
     await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).fill("politechnika warszawska");
     await a.getByRole("button", { name: /Politechnika Warszawska/ }).first().click();
     await a.getByRole("button", { name: "Szukaj" }).click();

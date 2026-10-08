@@ -26,12 +26,18 @@ function normalizeContacts(input: { instagram: string; facebook: string; whatsap
     .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
     .replace(/^@/, "")
     .replace(/[/?#].*$/, "");
-  const fbRaw = clip(input.facebook, 200);
-  const fbPath = fbRaw.replace(/^https?:\/\/(www\.|m\.)?(facebook|fb)\.com\//i, "").replace(/^@/, "").replace(/[?#].*$/, "").replace(/\/$/, "");
+  // Facebook: link z nazwą (facebook.com/kuba.kowalski.5), sama nazwa albo profil bez nazwy (profile.php?id=…)
+  const fbRaw = clip(input.facebook, 200).replace(/^(www\.|m\.)?(facebook|fb)\.com\//i, "https://facebook.com/");
+  const fbId = /profile\.php\?(?:.*&)?id=(\d{5,20})/i.exec(fbRaw)?.[1];
+  const fbPath = fbRaw.replace(/^https?:\/\/(www\.|m\.|web\.)?(facebook|fb)\.com\//i, "").replace(/^@/, "").replace(/[?#].*$/, "").replace(/\/$/, "");
   const wa = clip(input.whatsapp, 30).replace(/[^\d+]/g, "");
   return {
     instagram: /^[A-Za-z0-9._]{1,30}$/.test(ig) ? ig : null,
-    facebook: /^[A-Za-z0-9.\-_/=]{1,150}$/.test(fbPath) ? `https://facebook.com/${fbPath}` : null,
+    facebook: fbId
+      ? `https://facebook.com/profile.php?id=${fbId}`
+      : /^[A-Za-z0-9.\-_/=]{1,150}$/.test(fbPath) && fbPath !== "profile.php"
+        ? `https://facebook.com/${fbPath}`
+        : null,
     whatsapp: /^\+?\d{6,20}$/.test(wa) ? wa : null,
   };
 }
