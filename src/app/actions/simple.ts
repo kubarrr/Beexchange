@@ -16,6 +16,7 @@ export type MeInput = {
   facebook: string;
   whatsapp: string;
   looking_for_housing: boolean;
+  is_buddy: boolean;
   entries: { kind: EntryKind; institution_id: number; semester: string | null }[];
 };
 
@@ -57,22 +58,28 @@ export async function saveMe(input: MeInput): Promise<{ ok: true } | { ok: false
       return !seen.has(k) && seen.add(k);
     })
     .slice(0, 10);
-  if (!entries.length) return { ok: false, error: "entries" };
+  // 🧸 buddy pomaga na swojej uczelni macierzystej — bez niej nie ma sensu
+  const homeId = Number.isInteger(input.home_institution_id) ? input.home_institution_id : null;
+  const isBuddy = !!input.is_buddy && !!homeId;
+  if (!entries.length && !isBuddy) return { ok: false, error: "entries" };
 
   const { error } = await supabase.from("simple_people").upsert({
     user_id: userId,
     display_name: name,
-    home_institution_id: Number.isInteger(input.home_institution_id) ? input.home_institution_id : null,
+    home_institution_id: homeId,
     ...contacts,
     looking_for_housing: !!input.looking_for_housing,
+    is_buddy: isBuddy,
     updated_at: new Date().toISOString(),
   });
   if (error) return { ok: false, error: error.message };
   // Wpisy zapisujemy w całości
   const del = await supabase.from("simple_entries").delete().eq("user_id", userId);
   if (del.error) return { ok: false, error: del.error.message };
-  const ins = await supabase.from("simple_entries").insert(entries);
-  if (ins.error) return { ok: false, error: ins.error.message };
+  if (entries.length) {
+    const ins = await supabase.from("simple_entries").insert(entries);
+    if (ins.error) return { ok: false, error: ins.error.message };
+  }
 
   revalidatePath("/");
   return { ok: true };

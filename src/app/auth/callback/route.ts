@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.code ?? "exchange_failed")}`);
 
-  // Nowa osoba bez wpisu → najpierw „Mój wpis” (chyba że szła do konkretnej wyszukiwarki)
+  // Nowa osoba bez wpisu → najpierw „Mój profil” (chyba że szła do konkretnej wyszukiwarki)
   const { data: person } = await supabase.from("simple_people").select("user_id").eq("user_id", data.user.id).maybeSingle();
   if (!person && safeNext === "/") return NextResponse.redirect(`${origin}/me`);
 

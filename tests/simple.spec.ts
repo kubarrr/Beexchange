@@ -15,11 +15,8 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     ania = await makeBot("ania", "Ania Testowa");
     ola = await makeBot("ola", "Ola Testowa");
     // Ola: była na PoliMi i pomaga na PW
-    await admin.from("simple_people").insert({ user_id: ola.id, display_name: "Ola Testowa", home_institution_id: PW, instagram: "ola.testowa" });
-    await admin.from("simple_entries").insert([
-      { user_id: ola.id, kind: "been", institution_id: POLIMI, semester: "2026W" },
-      { user_id: ola.id, kind: "helper", institution_id: PW },
-    ]);
+    await admin.from("simple_people").insert({ user_id: ola.id, display_name: "Ola Testowa", home_institution_id: PW, instagram: "ola.testowa", is_buddy: true });
+    await admin.from("simple_entries").insert({ user_id: ola.id, kind: "been", institution_id: POLIMI, semester: "2026W" });
     A = await contextFor(browser, ania, baseURL!);
     guest = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "pl-PL" });
     await guest.addCookies([{ name: "lang", value: "pl", domain: "localhost", path: "/", sameSite: "Lax" }]);
@@ -39,7 +36,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
 
   test("Niezalogowany: wyszukiwanie pokazuje tylko liczbę osób", async () => {
     await g.goto("/");
-    await g.getByRole("link", { name: "Są lub byli" }).click();
+    await g.getByRole("link", { name: /Są lub byli/ }).click();
     await g.getByLabel("Kraj").selectOption({ label: "Włochy" });
     await expect(g.getByLabel("Miasto").locator("option", { hasText: "Mediolan" })).toHaveCount(1);
     await g.getByLabel("Miasto").selectOption({ label: "Mediolan" });
@@ -55,7 +52,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
 
   test("Mój wpis: imię, uczelnia, kontakt i wymiana", async () => {
     await a.goto("/me");
-    await expect(a.getByRole("heading", { name: "Twój wpis" })).toBeVisible();
+    await expect(a.getByRole("heading", { name: "Twój profil" })).toBeVisible();
     await a.getByLabel("Imię lub ksywka").fill("Ania T.");
     await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).first().fill("sgh");
     await a.getByRole("button", { name: /Szkoła Główna Handlowa/ }).first().click();
@@ -65,12 +62,15 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await a.getByRole("button", { name: /Bocconi/ }).first().click();
     await a.getByLabel("Semestr").selectOption({ label: "lato 2026/27" });
     await a.getByRole("button", { name: /Szukam mieszkania/ }).click();
+    await a.getByRole("button", { name: /Jestem buddy/ }).click();
     await noSideScroll(a);
     await shot(a, "s2-moj-wpis");
     await a.getByRole("button", { name: "Zapisz" }).click();
     await expect(a.getByRole("button", { name: /Zapisano/ })).toBeVisible();
     const { data } = await admin.from("simple_people").select("display_name, instagram").eq("user_id", ania.id).single();
     expect(data).toEqual({ display_name: "Ania T.", instagram: "ania.test" });
+    const { data: flags } = await admin.from("simple_people").select("is_buddy, looking_for_housing").eq("user_id", ania.id).single();
+    expect(flags).toEqual({ is_buddy: true, looking_for_housing: true });
     const { data: entry } = await admin.from("simple_entries").select("kind, semester").eq("user_id", ania.id).single();
     expect(entry).toEqual({ kind: "going", semester: "2027S" });
   });
@@ -82,6 +82,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await expect(card.getByRole("link", { name: "Instagram" })).toHaveAttribute("href", "https://instagram.com/ania.test");
     await expect(card).not.toContainText("Studiuje na");
     await expect(card).toContainText("🏠 szuka mieszkania");
+    await expect(card).toContainText("🧸 buddy");
     await shot(a, "s3-jada");
   });
 
@@ -107,7 +108,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
 
   test("Wersja angielska", async () => {
     await a.getByRole("button", { name: "en", exact: true }).click();
-    await expect(a.getByRole("heading", { name: "Find exchange people" })).toBeVisible();
+    await expect(a.getByRole("heading", { name: /Find people flying where/ })).toBeVisible();
     await expect(a.getByRole("link", { name: "Your buddy" })).toBeVisible();
     await a.getByRole("button", { name: "pl", exact: true }).click();
   });

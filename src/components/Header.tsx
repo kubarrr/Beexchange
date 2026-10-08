@@ -11,7 +11,7 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-cream/90 backdrop-blur">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
-        <Link href="/" aria-label="BeeXchange">
+        <Link href="/" aria-label="BeErasm">
           <Logo />
         </Link>
         <div className="ml-auto flex items-center gap-2">
@@ -28,7 +28,7 @@ export async function Header() {
               </button>
             ))}
           </form>
-          <Link href={userId ? "/me" : "/login?next=/me"} className="btn-honey min-h-9 bg-ink text-honey hover:bg-black">
+          <Link href={userId ? "/me" : "/login?next=/me"} className="btn-honey min-h-9 shrink-0 bg-ink px-3 text-xs whitespace-nowrap text-honey hover:bg-black">
             {userId ? t.simple.myEntry : t.simple.addMe}
           </Link>
         </div>

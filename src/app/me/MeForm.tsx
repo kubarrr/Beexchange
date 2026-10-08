@@ -17,10 +17,10 @@ export type MeInitial = {
   facebook: string;
   whatsapp: string;
   looking_for_housing: boolean;
+  is_buddy: boolean;
   entries: Entry[];
 };
 
-const KINDS: EntryKind[] = ["exchange", "helper"];
 
 export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial }) {
   const t = dictionaries[locale];
@@ -45,6 +45,7 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
         facebook: me.facebook,
         whatsapp: me.whatsapp,
         looking_for_housing: me.looking_for_housing,
+        is_buddy: me.is_buddy,
         entries: me.entries.filter((e) => e.inst).map((e) => ({ kind: e.kind, institution_id: e.inst!.id, semester: e.semester })),
       });
       if (!res.ok) {
@@ -91,27 +92,14 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
         </div>
         {me.entries.map((e, i) => (
           <div key={i} className="panel space-y-3 p-4">
-            <div className="flex items-center gap-2">
-              <div className="grid flex-1 grid-cols-2 gap-1 rounded-2xl bg-sand p-1">
-                {KINDS.map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    aria-pressed={e.kind === k}
-                    onClick={() => setEntry(i, { kind: k, semester: k === "helper" ? null : e.semester })}
-                    className={`min-h-10 rounded-xl px-1 text-[13px] leading-tight font-semibold ${e.kind === k ? "bg-ink text-honey" : ""}`}
-                  >
-                    {t.simple.kinds[k]}
-                  </button>
-                ))}
-              </div>
-              {me.entries.length > 1 && (
-                <button type="button" aria-label={t.simple.remove} onClick={() => set({ entries: me.entries.filter((_, j) => j !== i) })} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted hover:text-red-700">
+            {me.entries.length > 1 && (
+              <div className="flex justify-end">
+                <button type="button" aria-label={t.simple.remove} onClick={() => set({ entries: me.entries.filter((_, j) => j !== i) })} className="flex h-10 w-10 items-center justify-center rounded-xl text-muted hover:text-red-700">
                   <Trash2 size={17} />
                 </button>
-              )}
-            </div>
-            <p className="text-xs font-semibold text-muted">{t.simple.kindHint[e.kind]}</p>
+              </div>
+            )}
+            <p className="text-xs font-semibold text-muted">{t.simple.kindHint.exchange}</p>
             <InstitutionPicker locale={locale} value={e.inst} onChange={(inst) => setEntry(i, { inst })} />
             {e.kind === "exchange" && (
               <label className="block space-y-1.5">
@@ -131,8 +119,8 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
             )}
           </div>
         ))}
-        {me.entries.length < 10 && me.entries.every((e) => e.inst && (e.kind === "helper" || e.semester)) && (
-          <button type="button" onClick={() => set({ entries: [...me.entries, { kind: "helper", inst: null, semester: null }] })} className="btn-outline w-full border-dashed">
+        {me.entries.length < 10 && me.entries.every((e) => e.inst && e.semester) && (
+          <button type="button" onClick={() => set({ entries: [...me.entries, { kind: "exchange", inst: null, semester: null }] })} className="btn-outline w-full border-dashed">
             <Plus size={16} /> {t.simple.addEntry}
           </button>
         )}
@@ -144,6 +132,19 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
           <span className="block text-xs text-muted">{t.simple.housingHint}</span>
         </span>
         <Switch on={me.looking_for_housing} />
+      </button>
+      <button
+        type="button"
+        aria-pressed={me.is_buddy}
+        disabled={!me.home}
+        onClick={() => set({ is_buddy: !me.is_buddy })}
+        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-left disabled:opacity-60"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">{t.simple.buddy}</span>
+          <span className="block text-xs text-muted">{me.home ? t.simple.buddyHint : t.simple.buddyNeedsHome}</span>
+        </span>
+        <Switch on={me.is_buddy && !!me.home} />
       </button>
 
       {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}

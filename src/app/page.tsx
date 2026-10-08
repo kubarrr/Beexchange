@@ -9,6 +9,7 @@ import { HomeUniForm, SearchForm } from "./SearchForm";
 
 const TABS = ["going", "been", "helper"] as const;
 type Tab = (typeof TABS)[number];
+const TAB_ICON: Record<Tab, string> = { going: "✈️", been: "📍", helper: "🧸" };
 
 type Hit = {
   entry_id: number;
@@ -21,6 +22,7 @@ type Hit = {
   institution_id: number;
   semester: string | null;
   looking_for_housing: boolean;
+  is_buddy: boolean;
 };
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
@@ -68,19 +70,28 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
       {sp.deleted === "1" && <p className="rounded-2xl bg-ink px-4 py-3 text-center text-sm font-semibold text-honey">{t.profile.deleted}</p>}
 
-      <div>
-        <h1 className="display text-[34px] leading-[1.05]">{t.simple.title}</h1>
-        <p className="mt-1.5 text-[15px] text-muted">{t.simple.lead}</p>
-      </div>
+      <section className="relative overflow-hidden rounded-[28px] border-[3px] border-ink bg-honey px-5 pt-6 pb-5">
+        <svg viewBox="0 0 400 120" className="pointer-events-none absolute -right-6 -bottom-2 w-[70%] opacity-90" aria-hidden="true">
+          <path d="M10 110 C 100 110, 160 50, 260 70 S 340 60, 360 34" fill="none" stroke="#17140F" strokeWidth="3" strokeDasharray="7 8" strokeLinecap="round" />
+        </svg>
+        <span className="absolute top-4 right-5 rotate-12 text-[40px]" aria-hidden="true">
+          ✈️
+        </span>
+        <h1 className="display relative max-w-[85%] text-[32px] leading-[1.02] sm:text-[40px]">{t.simple.title}</h1>
+        <p className="relative mt-2 max-w-[80%] text-[15px] font-medium">{t.simple.lead}</p>
+      </section>
 
-      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-sand p-1">
+      <div className="grid grid-cols-3 gap-1 rounded-2xl border-[1.5px] border-line bg-white/80 p-1 backdrop-blur">
         {TABS.map((k) => (
           <Link
             key={k}
             href={tabHref(k)}
             aria-current={tab === k ? "page" : undefined}
-            className={`flex min-h-12 items-center justify-center rounded-xl px-1 text-center text-sm leading-tight font-bold ${tab === k ? "bg-ink text-honey" : ""}`}
+            className={`flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-center text-[13px] leading-tight font-bold ${tab === k ? "bg-ink text-honey" : ""}`}
           >
+            <span aria-hidden="true" className="text-xl leading-none">
+              {TAB_ICON[k]}
+            </span>
             {t.simple.tabs[k]}
           </Link>
         ))}
@@ -133,11 +144,19 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   <p className="flex flex-wrap items-center gap-1.5 text-[17px] leading-tight font-bold">
                     {h.display_name}
                     {h.looking_for_housing && tab !== "helper" && (
-                      <span className="rounded-full bg-sand px-2 py-0.5 text-[11px] font-bold">🏠 {t.simple.lookingForHousing}</span>
+                      <span title={t.simple.lookingForHousing} className="rounded-full bg-sand px-2 py-0.5 text-[11px] font-bold">
+                        🏠 {t.simple.lookingForHousing}
+                      </span>
+                    )}
+                    {h.is_buddy && (
+                      <span title={t.simple.buddyBadge} className="rounded-full bg-honey px-2 py-0.5 text-[11px] font-bold">
+                        🧸 buddy
+                      </span>
                     )}
                   </p>
-                  {at && (
+                  {at && tab !== "helper" && (
                     <p className="flex min-w-0 items-start gap-1.5 text-[13px] font-semibold text-honey-700">
+                      <span aria-hidden="true">{tab === "going" ? "✈️" : now ? "📍" : "🏛️"}</span>
                       <Flag code={at.country_code} className="mt-[3px] h-3 w-[18px]" />
                       <span>
                         {institutionName(at)}

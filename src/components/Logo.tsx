@@ -1,4 +1,4 @@
-// Logo BeeXchange (wariant B: pszczoła na przerywanej trasie lotu)
+// Logo BeErasm (wariant B: pszczoła na przerywanej trasie lotu)
 
 export function BeeMark({ size = 40, body = "#FFC52E" }: { size?: number; body?: string }) {
   return (
@@ -16,7 +16,7 @@ export function BeeMark({ size = 40, body = "#FFC52E" }: { size?: number; body?:
 export function Wordmark({ className = "text-[22px]" }: { className?: string }) {
   return (
     <span className={`display whitespace-nowrap ${className}`}>
-      <span className="mr-px rounded-md bg-honey px-1.5">Bee</span>Xchange
+      <span className="mr-px rounded-md bg-honey px-1.5">Be</span>Erasm
     </span>
   );
 }

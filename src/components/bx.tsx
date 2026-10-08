@@ -1,4 +1,4 @@
-// Wspólne elementy interfejsu BeeXchange (działają po stronie serwera i klienta)
+// Wspólne elementy interfejsu BeErasm (działają po stronie serwera i klienta)
 import { institutionName, initials, type Institution, type Stage } from "@/lib/domain";
 import type { Dictionary, Locale } from "@/lib/i18n/dictionaries";
 import { cityName } from "@/lib/cities";

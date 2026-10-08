@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-// Pozwala zainstalować BeeXchange na telefonie („Dodaj do ekranu głównego”)
+// Pozwala zainstalować BeErasm na telefonie („Dodaj do ekranu głównego”)
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BeeXchange: exchange together",
-    short_name: "BeeXchange",
+    name: "BeErasm",
+    short_name: "BeErasm",
     description: "Znajdź ludzi, którzy lecą na wymianę tam, gdzie Ty.",
     start_url: "/",
     scope: "/",

@@ -13,9 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getDictionary();
   return {
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-    title: { default: "BeeXchange: exchange together", template: "%s · BeeXchange" },
+    title: { default: "BeErasm: znajdź ludzi, którzy lecą tam, gdzie Ty", template: "%s · BeErasm" },
     description: t.meta.description,
-    appleWebApp: { capable: true, title: "BeeXchange", statusBarStyle: "default" },
+    appleWebApp: { capable: true, title: "BeErasm", statusBarStyle: "default" },
   };
 }
 

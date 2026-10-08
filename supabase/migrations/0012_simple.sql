@@ -1,6 +1,7 @@
--- BeeXchange (wersja prosta): wyszukiwarka osób zamiast pełnej aplikacji.
+-- BeErasm (wersja prosta): wyszukiwarka osób zamiast pełnej aplikacji.
 -- Przechowujemy minimum: imię lub ksywkę, uczelnię macierzystą, do trzech linków (Instagram, Facebook,
--- WhatsApp) i wpisy „jadę / jestem lub byłem / pomagam” z uczelnią i opcjonalnym semestrem.
+-- WhatsApp), wymiany (uczelnia + semestr) oraz dwa znaczniki: 🏠 szukam mieszkania i 🧸 buddy
+-- (pomogę studentom mojej uczelni macierzystej i tym, którzy na nią przyjeżdżają).
 -- Osobne tabele — pełna wersja aplikacji (gałąź main) działa dalej bez zmian.
 -- Uruchom w Supabase → SQL Editor. Plik można uruchomić ponownie.
 
@@ -40,6 +41,7 @@ create policy "simple entries read" on public.simple_entries for select to authe
 create policy "simple entries own" on public.simple_entries for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 alter table public.simple_people add column if not exists looking_for_housing boolean not null default false;
+alter table public.simple_people add column if not exists is_buddy boolean not null default false;
 
 -- Zakładka wynika z semestru: przyszły semestr → „jadą”, bieżący i przeszłe → „są lub byli”.
 -- Po końcu semestru wpis sam przechodzi do „są lub byli”. Bez semestru liczy się zapisany rodzaj.
@@ -53,25 +55,39 @@ language sql stable set search_path = '' as $$
   end;
 $$;
 
--- Wyszukiwanie: rodzaj wpisu + kraj i miasto uczelni, opcjonalnie konkretna uczelnia.
+-- Wyszukiwanie. „going” / „been”: wymiany na uczelniach w danym mieście (zakładka wynika z semestru).
+-- „helper” (Twój buddy): osoby z 🧸, których UCZELNIA MACIERZYSTA jest w danym mieście / jest wskazaną uczelnią.
 -- Tylko dla zalogowanych (zwraca imiona i kontakty).
 drop function if exists public.simple_search(text, text, text, bigint);
 create function public.simple_search(p_kind text, p_cc text, p_city text, p_inst bigint default null)
 returns table (
   entry_id bigint, user_id uuid, display_name text, instagram text, facebook text, whatsapp text,
-  home_id bigint, institution_id bigint, semester text, looking_for_housing boolean
+  home_id bigint, institution_id bigint, semester text, looking_for_housing boolean, is_buddy boolean
 )
 language sql stable set search_path = '' as $$
-  select e.id, p.user_id, p.display_name, p.instagram, p.facebook, p.whatsapp, p.home_institution_id, e.institution_id, e.semester, p.looking_for_housing
-  from public.simple_entries e
-  join public.simple_people p on p.user_id = e.user_id
-  join public.institutions i on i.id = e.institution_id
-  where public.simple_tab(e.kind, e.semester) = p_kind
-    and i.country_code = p_cc
-    and lower(i.city) = lower(p_city)
-    and (p_inst is null or e.institution_id = p_inst)
-  order by e.semester desc nulls last, e.created_at desc
-  limit 100;
+  (
+    select e.id, p.user_id, p.display_name, p.instagram, p.facebook, p.whatsapp, p.home_institution_id, e.institution_id, e.semester, p.looking_for_housing, p.is_buddy
+    from public.simple_entries e
+    join public.simple_people p on p.user_id = e.user_id
+    join public.institutions i on i.id = e.institution_id
+    where p_kind <> 'helper'
+      and public.simple_tab(e.kind, e.semester) = p_kind
+      and i.country_code = p_cc and lower(i.city) = lower(p_city)
+      and (p_inst is null or e.institution_id = p_inst)
+    order by e.semester desc nulls last, e.created_at desc
+    limit 100
+  )
+  union all
+  (
+    select -abs(hashtext(p.user_id::text))::bigint, p.user_id, p.display_name, p.instagram, p.facebook, p.whatsapp, p.home_institution_id, p.home_institution_id, null::text, p.looking_for_housing, p.is_buddy
+    from public.simple_people p
+    join public.institutions i on i.id = p.home_institution_id
+    where p_kind = 'helper' and p.is_buddy
+      and i.country_code = p_cc and lower(i.city) = lower(p_city)
+      and (p_inst is null or p.home_institution_id = p_inst)
+    order by p.updated_at desc
+    limit 100
+  );
 $$;
 revoke execute on function public.simple_search(text, text, text, bigint) from public, anon;
 grant execute on function public.simple_search(text, text, text, bigint) to authenticated;
@@ -81,10 +97,14 @@ drop function if exists public.simple_count(text, text, text, bigint);
 create function public.simple_count(p_kind text, p_cc text, p_city text, p_inst bigint default null)
 returns integer
 language sql stable security definer set search_path = '' as $$
-  select count(*)::int
-  from public.simple_entries e join public.institutions i on i.id = e.institution_id
-  where public.simple_tab(e.kind, e.semester) = p_kind and i.country_code = p_cc and lower(i.city) = lower(p_city)
-    and (p_inst is null or e.institution_id = p_inst);
+  select case when p_kind = 'helper' then
+    (select count(*)::int from public.simple_people p join public.institutions i on i.id = p.home_institution_id
+     where p.is_buddy and i.country_code = p_cc and lower(i.city) = lower(p_city) and (p_inst is null or p.home_institution_id = p_inst))
+  else
+    (select count(*)::int from public.simple_entries e join public.institutions i on i.id = e.institution_id
+     where public.simple_tab(e.kind, e.semester) = p_kind and i.country_code = p_cc and lower(i.city) = lower(p_city)
+       and (p_inst is null or e.institution_id = p_inst))
+  end;
 $$;
 grant execute on function public.simple_count(text, text, text, bigint) to anon, authenticated;
 

@@ -1,6 +1,6 @@
 // Dane do regulaminu i polityki prywatności. Zmień je tutaj, np. po założeniu firmy.
 export const LEGAL = {
-  service: "BeeXchange",
+  service: "BeErasm",
   operator: "Jakub Rymarski",
   email: "beeexchangeapp@gmail.com",
   // Region bazy danych Supabase: sprawdź w Supabase → Project Settings → General → Region
@@ -53,7 +53,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Kto widzi Twoje dane",
         body: [
           [
-            "Twój wpis (imię lub ksywka, kontakty, uczelnie i semestry) widzą wyłącznie zalogowani użytkownicy serwisu. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Twój buddy”.",
+            "Twój profil (imię lub ksywka, kontakty, uczelnie i semestry) widzą wyłącznie zalogowani użytkownicy serwisu. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Twój buddy”.",
             "Linki do Instagrama i Facebooka oraz numer WhatsApp podajesz dobrowolnie; prowadzą do usług tych firm, na których zasady prywatności nie mamy wpływu.",
             "Twojego adresu e-mail nie pokazujemy innym użytkownikom.",
           ],
@@ -78,8 +78,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "dostęp do danych i otrzymanie ich kopii,",
-            "sprostowanie danych (zmienisz je sam(a) w „Mój wpis”),",
-            "usunięcie danych (przycisk „Usuń moje dane” w „Mój wpis”),",
+            "sprostowanie danych (zmienisz je sam(a) w „Mój profil”),",
+            "usunięcie danych (przycisk „Usuń moje dane” w „Mój profil”),",
             "ograniczenie przetwarzania,",
             "przenoszenie danych,",
             "sprzeciw wobec przetwarzania opartego na prawnie uzasadnionym interesie,",
@@ -137,7 +137,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Who can see your data",
         body: [
           [
-            "Your listing (name or nickname, contacts, universities and semesters) is visible only to signed-in users. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Your buddy”.",
+            "Your profile (name or nickname, contacts, universities and semesters) is visible only to signed-in users. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Your buddy”.",
             "Instagram and Facebook links and your WhatsApp number are provided voluntarily; they lead to those companies' services, whose privacy rules we do not control.",
             "Your email address is never shown to other users.",
           ],
@@ -162,8 +162,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "access to your data and a copy of it,",
-            "rectification (you can change your data yourself in “My listing”),",
-            "erasure (the “Delete my data” button in “My listing”),",
+            "rectification (you can change your data yourself in “My profile”),",
+            "erasure (the “Delete my data” button in “My profile”),",
             "restriction of processing,",
             "data portability,",
             "objection to processing based on legitimate interest,",
@@ -206,7 +206,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
             "wyszukiwanie osób, które jadą na wymianę, są lub były na wymianie albo mogą pomóc na danej uczelni,",
             "dodawanie brakujących uczelni do bazy.",
           ],
-          "Umowa o świadczenie usług zostaje zawarta na czas nieokreślony z chwilą założenia konta. Możesz ją rozwiązać w każdej chwili, usuwając dane w „Mój wpis”.",
+          "Umowa o świadczenie usług zostaje zawarta na czas nieokreślony z chwilą założenia konta. Możesz ją rozwiązać w każdej chwili, usuwając dane w „Mój profil”.",
         ],
       },
       {
@@ -294,7 +294,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
             "search for people going on exchange, there now or before, or able to help at a given university,",
             "add missing universities to the database.",
           ],
-          "The agreement is concluded for an indefinite period when you create an account. You can terminate it at any time by deleting your data in “My listing”.",
+          "The agreement is concluded for an indefinite period when you create an account. You can terminate it at any time by deleting your data in “My profile”.",
         ],
       },
       { title: "§3. Technical requirements", body: ["You need an internet-connected device, an up-to-date browser (e.g. Chrome, Firefox, Safari, Edge) with JavaScript and cookies enabled, and an active email address."] },

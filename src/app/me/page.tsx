@@ -14,7 +14,7 @@ export default async function MePage() {
   const { t, locale } = await getDictionary();
 
   const [{ data: person }, { data: entries }, { data: auth }] = await Promise.all([
-    supabase.from("simple_people").select(`display_name, instagram, facebook, whatsapp, looking_for_housing, home:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).maybeSingle(),
+    supabase.from("simple_people").select(`display_name, instagram, facebook, whatsapp, looking_for_housing, is_buddy, home:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).maybeSingle(),
     supabase.from("simple_entries").select(`kind, semester, inst:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).order("created_at"),
     // Imię z konta Google jako podpowiedź przy pierwszym wpisie
     supabase.auth.getUser(),
@@ -27,11 +27,11 @@ export default async function MePage() {
     facebook: person?.facebook ?? "",
     whatsapp: person?.whatsapp ?? "",
     looking_for_housing: person?.looking_for_housing ?? false,
-    entries: ((entries ?? []) as unknown as { kind: string; semester: string | null; inst: Institution | null }[]).map((e) => ({
-      kind: (e.kind === "helper" ? "helper" : "exchange") as EntryKind,
-      inst: e.inst,
-      semester: e.semester,
-    })),
+    is_buddy: person?.is_buddy ?? false,
+    // Wpisy „pomogę” z wcześniejszej wersji zastąpił znacznik 🧸 buddy
+    entries: ((entries ?? []) as unknown as { kind: string; semester: string | null; inst: Institution | null }[])
+      .filter((e) => e.kind !== "helper")
+      .map((e) => ({ kind: "exchange" as EntryKind, inst: e.inst, semester: e.semester })),
   };
 
   return (

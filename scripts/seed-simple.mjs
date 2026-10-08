@@ -31,7 +31,7 @@ const U = {
   UJ: await byName("Jagiellonian University"),
 };
 
-// [klucz, imię, uczelnia macierzysta, kontakty, wpisy [rodzaj, uczelnia, semestr]]
+// [klucz, imię, uczelnia macierzysta, kontakty, wymiany [rodzaj, uczelnia, semestr]] — „helper” = 🧸 buddy na uczelni macierzystej
 const PEOPLE = [
   ["kuba", "Kuba N.", "PW", { instagram: "kuba.erasmus" }, [["going", "POLIMI", "2027S"]]],
   ["michal", "Michał", "PW", { whatsapp: "+48600100200" }, [["going", "POLIMI", "2027S"]]],
@@ -52,9 +52,13 @@ for (const [key, name, home, contacts, entries] of PEOPLE) {
   const { data, error } = await admin.auth.admin.createUser({ email: `${key}@${DOMAIN}`, email_confirm: true, user_metadata: { full_name: name } });
   if (error) throw error;
   const id = data.user.id;
-  const p = await admin.from("simple_people").insert({ user_id: id, display_name: name, home_institution_id: U[home], ...contacts });
+  const buddy = entries.some(([kind]) => kind === "helper");
+  const exchanges = entries.filter(([kind]) => kind !== "helper");
+  const p = await admin.from("simple_people").insert({ user_id: id, display_name: name, home_institution_id: U[home], is_buddy: buddy, looking_for_housing: key === "kuba" || key === "zuza", ...contacts });
   if (p.error) throw new Error(`${key}: ${p.error.message}`);
-  const e = await admin.from("simple_entries").insert(entries.map(([kind, uni, semester]) => ({ user_id: id, kind, institution_id: U[uni], semester })));
-  if (e.error) throw new Error(`${key}: ${e.error.message}`);
+  if (exchanges.length) {
+    const e = await admin.from("simple_entries").insert(exchanges.map(([kind, uni, semester]) => ({ user_id: id, kind, institution_id: U[uni], semester })));
+    if (e.error) throw new Error(`${key}: ${e.error.message}`);
+  }
 }
 console.log(`✅ Utworzono ${PEOPLE.length} osób pokazowych (Mediolan, Warszawa, Lizbona).`);

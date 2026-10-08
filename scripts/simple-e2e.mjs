@@ -54,13 +54,11 @@ section("Zapis własnego wpisu");
   check("…i wpis „jadę na PoliMi, lato 2026/27”", !e.error, e.error?.message);
   const fake = await zosia.db.from("simple_people").insert({ user_id: giulia.id, display_name: "Podszywka" });
   check("Nie da się założyć wpisu za kogoś innego", !!fake.error);
-  await giulia.db.from("simple_people").insert({ user_id: giulia.id, display_name: "Bot Giulia", home_institution_id: POLIMI, whatsapp: "+393331234567" });
-  await giulia.db.from("simple_entries").insert({ user_id: giulia.id, kind: "helper", institution_id: POLIMI });
-  await ola.db.from("simple_people").insert({ user_id: ola.id, display_name: "Bot Ola", home_institution_id: PW, facebook: "https://facebook.com/bot.ola" });
-  await ola.db.from("simple_entries").insert([
-    { user_id: ola.id, kind: "been", institution_id: POLIMI, semester: "2026W" },
-    { user_id: ola.id, kind: "helper", institution_id: PW },
-  ]);
+  // Giulia: lokalna studentka PoliMi, 🧸 buddy bez wymiany
+  await giulia.db.from("simple_people").insert({ user_id: giulia.id, display_name: "Bot Giulia", home_institution_id: POLIMI, whatsapp: "+393331234567", is_buddy: true });
+  // Ola: z PW, teraz na PoliMi, 🧸 buddy na swojej uczelni (PW)
+  await ola.db.from("simple_people").insert({ user_id: ola.id, display_name: "Bot Ola", home_institution_id: PW, facebook: "https://facebook.com/bot.ola", is_buddy: true });
+  await ola.db.from("simple_entries").insert({ user_id: ola.id, kind: "been", institution_id: POLIMI, semester: "2026W" });
   const hack = await zosia.db.from("simple_people").update({ display_name: "Zmienione" }).eq("user_id", giulia.id).select("user_id");
   check("Nie da się zmienić cudzego wpisu", !hack.data?.length);
   const bogus = await zosia.db.from("simple_entries").insert({ user_id: zosia.id, kind: "party", institution_id: POLIMI });
@@ -82,6 +80,8 @@ const search = (b, kind, cc, city, inst = null) => b.db.rpc("simple_search", { p
   check("Pomogą w Mediolanie → Giulia (z numerem WhatsApp)", names(helpers.data).includes("Bot Giulia") && helpers.data.find((r) => r.display_name === "Bot Giulia")?.whatsapp === "+393331234567");
   const waw = await search(zosia, "helper", "PL", "Warsaw");
   check("Pomogą w Warszawie → Ola (pomaga na PW) z uczelnią macierzystą", names(waw.data).includes("Bot Ola") && waw.data.find((r) => r.display_name === "Bot Ola")?.home_id === PW);
+  check("Buddy na Bocconi → nie Giulia (jej uczelnia to PoliMi)", !names((await search(zosia, "helper", "IT", "Milan", BOC)).data).includes("Bot Giulia"));
+  check("Bez 🧸 nie ma Cię w „Twój buddy” (Zosia)", !names((await search(giulia, "helper", "PL", "Warsaw")).data).includes("Bot Zosia"));
   check("Pomogą na SGH → nie Ola (ona pomaga na PW)", !names((await search(zosia, "helper", "PL", "Warsaw", SGH)).data).includes("Bot Ola"));
 }
 
@@ -120,7 +120,7 @@ async function page(path, expect = [], who = null, lang = "pl") {
   check(`${path}${who ? ` (${who.name})` : " (niezalogowany)"}`, res.status === 200 && !missing.length, res.status !== 200 ? `HTTP ${res.status} ${res.headers.get("location") ?? ""}` : `brak: ${missing.join(", ")}`);
   return html;
 }
-await page("/", ["Znajdź ludzi z wymiany", "Jadą", "Twój buddy"]);
+await page("/", ["Znajdź ludzi, którzy lecą tam, gdzie Ty", "Jadą", "Twój buddy", "BeErasm"]);
 await page(`/?tab=helper&mode=home&inst=${PW}`, ["Bot Ola", "Na Twojej uczelni"], zosia);
 {
   const html = await page("/?tab=going&cc=IT&city=Milan", ["Zaloguj się przez Google"]);
@@ -135,8 +135,8 @@ await page("/?tab=going&cc=IT&city=Milan", ["Bot Zosia", "instagram.com/bot.zosi
   const html = await page("/?tab=going&cc=IT&city=Milan", ["Bot Zosia"], giulia);
   check("Przy „Jadą” nie pokazujemy uczelni macierzystej", !html.includes("Studiuje na"));
 }
-await page("/me", ["Twój wpis", "Bot Zosia"], zosia);
-await page("/?tab=going&cc=IT&city=Milan", ["Find exchange people", "Going"], giulia, "en");
+await page("/me", ["Twój profil", "Bot Zosia", "Jestem buddy"], zosia);
+await page("/?tab=going&cc=IT&city=Milan", ["Find people flying where", "Your buddy", "My profile"], giulia, "en");
 {
   const res = await fetch(`${APP}/me`, { redirect: "manual" });
   check("„Mój wpis” bez logowania → logowanie", [302, 303, 307].includes(res.status) && (res.headers.get("location") ?? "").includes("/login"));
