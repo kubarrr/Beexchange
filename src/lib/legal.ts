@@ -5,8 +5,8 @@ export const LEGAL = {
   email: "beeexchangeapp@gmail.com",
   // Region bazy danych Supabase: sprawdź w Supabase → Project Settings → General → Region
   dataRegion: { pl: "Unia Europejska", en: "European Union" },
-  effective: "1 października 2026",
-  effectiveEn: "1 October 2026",
+  effective: "8 października 2026",
+  effectiveEn: "8 October 2026",
   minAge: 16,
 };
 
@@ -29,8 +29,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "2. Jakie dane zbieramy",
         body: [
           [
-            "Dane konta: adres e-mail (służy do logowania; nie pokazujemy go innym użytkownikom). Przy logowaniu przez Google otrzymujemy od Google Twój adres e-mail, imię i nazwisko oraz zdjęcie profilowe.",
-            "Dane wpisu, które sam(a) podajesz: imię lub ksywka, uczelnia macierzysta, linki lub numer do kontaktu (Instagram, Facebook, WhatsApp) oraz wpisy: dokąd jedziesz, gdzie jesteś lub byłeś/aś i na jakiej uczelni możesz pomóc (uczelnia i opcjonalnie semestr).",
+            "Dane konta: adres e-mail (służy do logowania; nie pokazujemy go innym użytkownikom). Logujesz się kontem Google — otrzymujemy od Google Twój adres e-mail, imię i nazwisko oraz zdjęcie profilowe (zdjęcia nie pokazujemy innym użytkownikom).",
+            "Dane profilu, które sam(a) podajesz: imię lub ksywka, uczelnia macierzysta, linki lub numer do kontaktu (Instagram, Facebook, WhatsApp), wymiany (uczelnia i semestr) oraz znaczniki „szukam mieszkania” i „buddy”.",
             "Nie zbieramy zdjęć, wiadomości ani innych treści — kontakt odbywa się poza serwisem, przez podane przez Ciebie konta.",
             "Dane techniczne: adres IP, informacje o przeglądarce i urządzeniu oraz czas zdarzeń zapisywane w logach naszych dostawców w celu zapewnienia bezpieczeństwa i działania serwisu.",
           ],
@@ -41,19 +41,19 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "Założenie i prowadzenie konta oraz pokazywanie Twojego wpisu w wyszukiwarce osób z wymiany: art. 6 ust. 1 lit. b RODO.",
-            "Wysyłanie e-maili niezbędnych do działania konta (link do logowania, potwierdzenie adresu): art. 6 ust. 1 lit. b RODO.",
+            "Odpowiadanie na Twoje wiadomości, zgłoszenia i reklamacje: art. 6 ust. 1 lit. b i f RODO.",
             "Bezpieczeństwo, zapobieganie nadużyciom, moderacja zgłoszonych treści oraz ustalanie i obrona roszczeń: art. 6 ust. 1 lit. f RODO (nasz prawnie uzasadniony interes).",
             "Wypełnianie obowiązków prawnych, np. odpowiadanie na żądania uprawnionych organów: art. 6 ust. 1 lit. c RODO.",
           ],
           "Nie stosujemy automatycznego podejmowania decyzji ani profilowania. Wyszukiwarka pokazuje wpisy pasujące do wybranego kraju, miasta i uczelni.",
-          "Podanie adresu e-mail jest niezbędne do założenia konta. Pozostałe dane są dobrowolne, ale bez nich dopasowania będą mniej trafne.",
+          "Konto Google jest niezbędne do logowania. Żeby Twój profil był widoczny w wyszukiwarce, potrzebne są imię lub ksywka, co najmniej jeden kontakt oraz wymiana albo znacznik „buddy”. Podanie danych jest dobrowolne, ale bez nich nie pokażemy Twojego profilu.",
         ],
       },
       {
         title: "4. Kto widzi Twoje dane",
         body: [
           [
-            "Twój profil (imię lub ksywka, kontakty, uczelnie i semestry) widzą wyłącznie zalogowani użytkownicy serwisu. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Twój buddy”.",
+            "Twój profil (imię lub ksywka, kontakty, uczelnie, semestry i znaczniki) widzą zalogowani użytkownicy serwisu — zalogować się może każda osoba z kontem Google. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Twój buddy”. Podawaj więc tylko takie kontakty, które chcesz udostępnić innym studentom.",
             "Linki do Instagrama i Facebooka oraz numer WhatsApp podajesz dobrowolnie; prowadzą do usług tych firm, na których zasady prywatności nie mamy wpływu.",
             "Twojego adresu e-mail nie pokazujemy innym użytkownikom.",
           ],
@@ -61,16 +61,16 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
           [
             `Supabase Inc.: baza danych i logowanie (serwery w regionie: ${L.dataRegion.pl}).`,
             "Vercel Inc.: hosting aplikacji internetowej.",
-            "Google LLC: logowanie przez Google i wysyłka e-maili z serwisu.",
+            "Google LLC: logowanie przez Google.",
           ],
-          "Vercel i Google mogą przetwarzać dane w USA. Transfer odbywa się na podstawie decyzji Komisji Europejskiej o odpowiednim stopniu ochrony (EU-US Data Privacy Framework) lub standardowych klauzul umownych. Nie sprzedajemy Twoich danych i nie przekazujemy ich reklamodawcom.",
+          "Supabase, Vercel i Google to firmy z USA i mogą mieć dostęp do danych także stamtąd (np. w ramach wsparcia technicznego). Transfer odbywa się na podstawie decyzji Komisji Europejskiej o odpowiednim stopniu ochrony (EU-US Data Privacy Framework) lub standardowych klauzul umownych. Nie sprzedajemy Twoich danych i nie przekazujemy ich reklamodawcom.",
         ],
       },
       {
         title: "5. Jak długo przechowujemy dane",
         body: [
           "Dane konta i wpisu przechowujemy do czasu usunięcia konta. Po usunięciu konta natychmiast usuwamy wpis, kontakty i uczelnie. Kopie zapasowe i logi techniczne dostawców mogą je zawierać jeszcze do 30 dni, po czym są nadpisywane.",
-          "Zgłoszenia naruszeń możemy przechowywać do roku od ich rozpatrzenia, jeśli jest to potrzebne do ochrony innych użytkowników lub obrony roszczeń.",
+          "Korespondencję ze zgłoszeniami naruszeń i reklamacjami możemy przechowywać do roku od ich rozpatrzenia, jeśli jest to potrzebne do ochrony innych użytkowników lub obrony roszczeń.",
         ],
       },
       {
@@ -113,8 +113,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "2. Data we collect",
         body: [
           [
-            "Account data: email address (used to log in; never shown to other users). When you sign in with Google, we receive your email address, name and profile picture from Google.",
-            "Listing data you provide: name or nickname, home university, contact links or number (Instagram, Facebook, WhatsApp) and entries: where you are going, where you are or have been and where you can help (university and optional semester).",
+            "Account data: email address (used to log in; never shown to other users). You sign in with your Google account — we receive your email address, name and profile picture from Google (the picture is not shown to other users).",
+            "Profile data you provide: name or nickname, home university, contact links or number (Instagram, Facebook, WhatsApp), exchanges (university and semester) and the “looking for housing” and “buddy” flags.",
             "We do not collect photos, messages or other content — people contact each other outside the service, through the accounts you provide.",
             "Technical data: IP address, browser and device information and timestamps stored in our providers' logs for security and operation.",
           ],
@@ -125,19 +125,19 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "Creating and running your account and showing your listing in the exchange people search: Art. 6(1)(b) GDPR.",
-            "Emails necessary for your account (login link, email confirmation): Art. 6(1)(b) GDPR.",
+            "Replying to your messages, reports and complaints: Art. 6(1)(b) and (f) GDPR.",
             "Security, abuse prevention, moderation of reported content and legal claims: Art. 6(1)(f) GDPR (legitimate interest).",
             "Legal obligations, e.g. requests from authorities: Art. 6(1)(c) GDPR.",
           ],
           "We do not use automated decision-making or profiling. The search shows listings matching the chosen country, city and university.",
-          "Your email is required to create an account. Other data is optional, but without it matching will be less accurate.",
+          "A Google account is required to sign in. For your profile to appear in the search, you need a name or nickname, at least one contact and an exchange or the “buddy” flag. Providing data is voluntary, but without it we cannot show your profile.",
         ],
       },
       {
         title: "4. Who can see your data",
         body: [
           [
-            "Your profile (name or nickname, contacts, universities and semesters) is visible only to signed-in users. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Your buddy”.",
+            "Your profile (name or nickname, contacts, universities, semesters and flags) is visible to signed-in users — anyone with a Google account can sign in. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Your buddy”. Only add contacts you are happy to share with other students.",
             "Instagram and Facebook links and your WhatsApp number are provided voluntarily; they lead to those companies' services, whose privacy rules we do not control.",
             "Your email address is never shown to other users.",
           ],
@@ -145,16 +145,16 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
           [
             `Supabase Inc.: database and authentication (servers in: ${L.dataRegion.en}).`,
             "Vercel Inc.: web hosting.",
-            "Google LLC: Sign in with Google and sending emails.",
+            "Google LLC: Sign in with Google.",
           ],
-          "Vercel and Google may process data in the USA based on the EU-US Data Privacy Framework adequacy decision or standard contractual clauses. We do not sell your data or share it with advertisers.",
+          "Supabase, Vercel and Google are US companies and may access data from the USA (e.g. for technical support), based on the EU-US Data Privacy Framework adequacy decision or standard contractual clauses. We do not sell your data or share it with advertisers.",
         ],
       },
       {
         title: "5. Retention",
         body: [
           "We keep account and listing data until you delete your account. On deletion we immediately remove your listing, contacts and universities. Provider backups and technical logs may contain them for up to 30 days before being overwritten.",
-          "Abuse reports may be kept for up to one year after review where needed to protect other users or defend legal claims.",
+          "Correspondence about abuse reports and complaints may be kept for up to one year after review where needed to protect other users or defend legal claims.",
         ],
       },
       {
@@ -192,7 +192,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
       {
         title: "§1. Postanowienia ogólne",
         body: [
-          `Regulamin określa zasady korzystania z serwisu internetowego ${L.service} („Serwis”). Usługodawcą jest ${L.operator}, kontakt: ${L.email} („Usługodawca”).`,
+          `Regulamin określa zasady korzystania z serwisu internetowego ${L.service} („Serwis”). Usługodawcą jest ${L.operator}, kontakt: ${L.email} („Usługodawca”). Ten adres jest też punktem kontaktowym dla użytkowników i organów w rozumieniu aktu o usługach cyfrowych (DSA); możesz pisać po polsku lub angielsku.`,
           "Regulamin jest regulaminem w rozumieniu ustawy o świadczeniu usług drogą elektroniczną. Zakładając konto, akceptujesz Regulamin i Politykę prywatności.",
           `${L.service} jest niezależnym projektem i nie jest powiązany z programem Erasmus+, Komisją Europejską, Erasmus Student Network ani z żadną uczelnią.`,
         ],
@@ -206,13 +206,13 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
             "wyszukiwanie osób, które jadą na wymianę, są lub były na wymianie albo mogą pomóc na danej uczelni,",
             "dodawanie brakujących uczelni do bazy.",
           ],
-          "Umowa o świadczenie usług zostaje zawarta na czas nieokreślony z chwilą założenia konta. Możesz ją rozwiązać w każdej chwili, usuwając dane w „Mój profil”.",
+          "Umowa o świadczenie usług zostaje zawarta na czas nieokreślony z chwilą założenia konta. Możesz ją rozwiązać w każdej chwili, usuwając dane w „Mój profil”. Jako konsument możesz też odstąpić od umowy w ciągu 14 dni od jej zawarcia bez podawania przyczyny — wystarczy usunąć konto albo napisać na adres kontaktowy.",
         ],
       },
       {
         title: "§3. Wymagania techniczne",
         body: [
-          "Do korzystania z Serwisu potrzebujesz urządzenia z dostępem do internetu, aktualnej przeglądarki (np. Chrome, Firefox, Safari, Edge) z włączonym JavaScriptem i plikami cookies oraz aktywnego adresu e-mail.",
+          "Do korzystania z Serwisu potrzebujesz urządzenia z dostępem do internetu, aktualnej przeglądarki (np. Chrome, Firefox, Safari, Edge) z włączonym JavaScriptem i plikami cookies oraz konta Google (do logowania).",
         ],
       },
       {
@@ -221,7 +221,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
           [
             `Konto może założyć osoba, która ukończyła ${L.minAge} lat.`,
             "Podajesz prawdziwe dane i nie podszywasz się pod inne osoby. Jedna osoba może mieć jedno konto.",
-            "Dbasz o bezpieczeństwo swojej skrzynki e-mail, bo służy ona do logowania.",
+            "Dbasz o bezpieczeństwo swojego konta Google, bo służy ono do logowania.",
           ],
         ],
       },
@@ -249,8 +249,8 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
       {
         title: "§7. Zgłoszenia i moderacja",
         body: [
-          `Nielegalne lub naruszające Regulamin treści możesz zgłosić przyciskiem „Zgłoś” albo e-mailem na ${L.email}.`,
-          "Usługodawca może usunąć treść naruszającą prawo lub Regulamin, a przy poważnych lub powtarzających się naruszeniach zablokować lub usunąć konto. O decyzji i jej powodach informujemy użytkownika e-mailem, chyba że nie pozwala na to prawo. Od decyzji możesz się odwołać, pisząc na adres kontaktowy.",
+          `Nielegalne lub naruszające Regulamin treści możesz zgłosić linkiem „Zgłoś” przy profilu albo e-mailem na ${L.email}. Podaj, którego profilu dotyczy zgłoszenie i dlaczego uważasz treść za nielegalną lub niezgodną z Regulaminem.`,
+          "Zgłoszenia rozpatruje człowiek — nie stosujemy zautomatyzowanej moderacji. Usługodawca może usunąć treść naruszającą prawo lub Regulamin, a przy poważnych lub powtarzających się naruszeniach zablokować lub usunąć konto. O decyzji i jej powodach informujemy użytkownika e-mailem, chyba że nie pozwala na to prawo. Od decyzji możesz się odwołać, pisząc na adres kontaktowy.",
         ],
       },
       {
@@ -280,7 +280,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
       {
         title: "§1. General",
         body: [
-          `These Terms govern the use of the ${L.service} website (the “Service”). The provider is ${L.operator}, contact: ${L.email} (the “Provider”).`,
+          `These Terms govern the use of the ${L.service} website (the “Service”). The provider is ${L.operator}, contact: ${L.email} (the “Provider”). This address is also the single point of contact for users and authorities under the Digital Services Act; you can write in Polish or English.`,
           "By creating an account you accept these Terms and the Privacy policy.",
           `${L.service} is an independent project and is not affiliated with the Erasmus+ programme, the European Commission, the Erasmus Student Network or any university.`,
         ],
@@ -294,13 +294,13 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
             "search for people going on exchange, there now or before, or able to help at a given university,",
             "add missing universities to the database.",
           ],
-          "The agreement is concluded for an indefinite period when you create an account. You can terminate it at any time by deleting your data in “My profile”.",
+          "The agreement is concluded for an indefinite period when you create an account. You can terminate it at any time by deleting your data in “My profile”. As a consumer you may also withdraw from the agreement within 14 days without giving a reason — just delete your account or write to the contact address.",
         ],
       },
-      { title: "§3. Technical requirements", body: ["You need an internet-connected device, an up-to-date browser (e.g. Chrome, Firefox, Safari, Edge) with JavaScript and cookies enabled, and an active email address."] },
+      { title: "§3. Technical requirements", body: ["You need an internet-connected device, an up-to-date browser (e.g. Chrome, Firefox, Safari, Edge) with JavaScript and cookies enabled, and a Google account (to sign in)."] },
       {
         title: "§4. Account",
-        body: [[`You must be at least ${L.minAge} years old.`, "Provide true information and do not impersonate others. One person may have one account.", "Keep your email inbox secure, as it is used to log in."]],
+        body: [[`You must be at least ${L.minAge} years old.`, "Provide true information and do not impersonate others. One person may have one account.", "Keep your Google account secure, as it is used to sign in."]],
       },
       {
         title: "§5. Rules",
@@ -326,8 +326,8 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
       {
         title: "§7. Reports and moderation",
         body: [
-          `You can report unlawful or rule-breaking content with the “Report” button or by email to ${L.email}.`,
-          "The Provider may remove content that breaks the law or these Terms and, for serious or repeated violations, block or delete the account. We inform the user of the decision and its reasons by email unless the law prevents it. You can appeal by writing to the contact address.",
+          `You can report unlawful or rule-breaking content with the “Report” link next to a profile or by email to ${L.email}. Say which profile the report is about and why you believe the content is unlawful or breaks these Terms.`,
+          "Reports are reviewed by a person — we do not use automated moderation. The Provider may remove content that breaks the law or these Terms and, for serious or repeated violations, block or delete the account. We inform the user of the decision and its reasons by email unless the law prevents it. You can appeal by writing to the contact address.",
         ],
       },
       {

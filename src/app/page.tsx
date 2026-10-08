@@ -5,6 +5,7 @@ import { cityName } from "@/lib/cities";
 import { ALL_COUNTRY_CODES } from "@/lib/countries";
 import { INSTITUTION_FIELDS, countryName, institutionName, semesterLabel, semesterPhase, type Institution } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
+import { LEGAL } from "@/lib/legal";
 import { HomeUniForm, SearchForm } from "./SearchForm";
 
 const TABS = ["going", "been", "helper"] as const;
@@ -191,6 +192,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                         WhatsApp
                       </a>
                     )}
+                    {/* DSA: zgłoszenie nielegalnej lub niezgodnej z regulaminem treści */}
+                    <a
+                      href={`mailto:${LEGAL.email}?subject=${encodeURIComponent(`${t.simple.reportSubject} ${h.user_id}`)}&body=${encodeURIComponent(t.simple.reportBody(h.display_name))}`}
+                      className="ml-auto self-center text-xs text-muted underline hover:text-red-700"
+                    >
+                      {t.simple.report}
+                    </a>
                   </div>
                 </div>
               </article>

@@ -409,6 +409,9 @@ const pl = {
     buddyNeedsHome: "Najpierw wybierz uczelnię macierzystą powyżej.",
     buddyBadge: "pomaga na swojej uczelni",
     signOut: "Wyloguj się",
+    report: "Zgłoś",
+    reportSubject: "Zgłoszenie profilu",
+    reportBody: (name: string) => `Zgłaszam profil „${name}”, ponieważ: `,
     deleteTitle: "Usuń moje dane",
   },
   events: {
@@ -894,6 +897,9 @@ const en: Dictionary = {
     buddyNeedsHome: "Pick your home university above first.",
     buddyBadge: "helps at their home university",
     signOut: "Sign out",
+    report: "Report",
+    reportSubject: "Profile report",
+    reportBody: (name: string) => `I am reporting the profile “${name}” because: `,
     deleteTitle: "Delete my data",
   },
   events: {
