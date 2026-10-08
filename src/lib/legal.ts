@@ -30,8 +30,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "Dane konta: adres e-mail (służy do logowania; nie pokazujemy go innym użytkownikom). Przy logowaniu przez Google otrzymujemy od Google Twój adres e-mail, imię i nazwisko oraz zdjęcie profilowe.",
-            "Dane profilu, które sam(a) podajesz: imię i nazwisko, zdjęcie, uczelnie macierzyste, kierunek, stopień i rok studiów, wymiany (uczelnia, semestr, status), pasje, języki, opis, ustawienia kontaktu i bycia buddy, wybrany język aplikacji.",
-            "Treści, które tworzysz: wiadomości prywatne, wiadomości w grupach, członkostwa w grupach, wydarzenia (wraz ze zdjęciami) i zapisy na nie, ogłoszenia pokoi (wraz ze zdjęciami), prośby o sprawdzenie mieszkania, prośby o buddy, zgłoszenia oraz uczelnie dodane do bazy.",
+            "Dane wpisu, które sam(a) podajesz: imię lub ksywka, uczelnia macierzysta, linki lub numer do kontaktu (Instagram, Facebook, WhatsApp) oraz wpisy: dokąd jedziesz, gdzie jesteś lub byłeś/aś i na jakiej uczelni możesz pomóc (uczelnia i opcjonalnie semestr).",
+            "Nie zbieramy zdjęć, wiadomości ani innych treści — kontakt odbywa się poza serwisem, przez podane przez Ciebie konta.",
             "Dane techniczne: adres IP, informacje o przeglądarce i urządzeniu oraz czas zdarzeń zapisywane w logach naszych dostawców w celu zapewnienia bezpieczeństwa i działania serwisu.",
           ],
         ],
@@ -40,12 +40,12 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "3. Cele i podstawy prawne",
         body: [
           [
-            "Założenie i prowadzenie konta oraz świadczenie usług serwisu (dopasowywanie do grup, czaty, wiadomości, wydarzenia): art. 6 ust. 1 lit. b RODO (wykonanie umowy, czyli regulaminu).",
+            "Założenie i prowadzenie konta oraz pokazywanie Twojego wpisu w wyszukiwarce osób z wymiany: art. 6 ust. 1 lit. b RODO.",
             "Wysyłanie e-maili niezbędnych do działania konta (link do logowania, potwierdzenie adresu): art. 6 ust. 1 lit. b RODO.",
             "Bezpieczeństwo, zapobieganie nadużyciom, moderacja zgłoszonych treści oraz ustalanie i obrona roszczeń: art. 6 ust. 1 lit. f RODO (nasz prawnie uzasadniony interes).",
             "Wypełnianie obowiązków prawnych, np. odpowiadanie na żądania uprawnionych organów: art. 6 ust. 1 lit. c RODO.",
           ],
-          "Dopasowanie do grup i propozycje osób odbywają się automatycznie na podstawie danych z Twojego profilu (uczelnie, wymiany, semestry, pasje). Nie wywołuje to wobec Ciebie skutków prawnych ani podobnie istotnych skutków w rozumieniu art. 22 RODO.",
+          "Nie stosujemy automatycznego podejmowania decyzji ani profilowania. Wyszukiwarka pokazuje wpisy pasujące do wybranego kraju, miasta i uczelni.",
           "Podanie adresu e-mail jest niezbędne do założenia konta. Pozostałe dane są dobrowolne, ale bez nich dopasowania będą mniej trafne.",
         ],
       },
@@ -53,13 +53,13 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Kto widzi Twoje dane",
         body: [
           [
-            "Twój profil (imię i nazwisko, zdjęcie, uczelnie, wymiany, pasje, języki, opis) widzą inni zalogowani użytkownicy serwisu. Nie jest on dostępny dla osób niezalogowanych ani wyszukiwarek internetowych.",
-            "Wiadomości prywatne widzą wyłącznie uczestnicy rozmowy. Wiadomości w grupie widzą członkowie tej grupy (także goście, którzy do niej dołączą).",
+            "Twój wpis (imię lub ksywka, kontakty, uczelnie i semestry) widzą wyłącznie zalogowani użytkownicy serwisu. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Pomogą Ci”.",
+            "Linki do Instagrama i Facebooka oraz numer WhatsApp podajesz dobrowolnie; prowadzą do usług tych firm, na których zasady prywatności nie mamy wpływu.",
             "Twojego adresu e-mail nie pokazujemy innym użytkownikom.",
           ],
           "Dane powierzamy dostawcom, którzy przetwarzają je w naszym imieniu:",
           [
-            `Supabase Inc.: baza danych, logowanie i przechowywanie zdjęć (serwery w regionie: ${L.dataRegion.pl}).`,
+            `Supabase Inc.: baza danych i logowanie (serwery w regionie: ${L.dataRegion.pl}).`,
             "Vercel Inc.: hosting aplikacji internetowej.",
             "Google LLC: logowanie przez Google i wysyłka e-maili z serwisu.",
           ],
@@ -69,7 +69,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
       {
         title: "5. Jak długo przechowujemy dane",
         body: [
-          "Dane konta i profilu przechowujemy do czasu usunięcia konta. Po usunięciu konta usuwamy natychmiast profil, zdjęcie, uczelnie, wymiany, wiadomości, członkostwa, wydarzenia i prośby. Kopie zapasowe i logi techniczne dostawców mogą je zawierać jeszcze do 30 dni, po czym są nadpisywane.",
+          "Dane konta i wpisu przechowujemy do czasu usunięcia konta. Po usunięciu konta natychmiast usuwamy wpis, kontakty i uczelnie. Kopie zapasowe i logi techniczne dostawców mogą je zawierać jeszcze do 30 dni, po czym są nadpisywane.",
           "Zgłoszenia naruszeń możemy przechowywać do roku od ich rozpatrzenia, jeśli jest to potrzebne do ochrony innych użytkowników lub obrony roszczeń.",
         ],
       },
@@ -78,8 +78,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "dostęp do danych i otrzymanie ich kopii,",
-            "sprostowanie danych (większość zmienisz sam(a) w zakładce Profil),",
-            "usunięcie danych (przycisk „Usuń konto” w zakładce Profil),",
+            "sprostowanie danych (zmienisz je sam(a) w „Mój wpis”),",
+            "usunięcie danych (przycisk „Usuń moje dane” w „Mój wpis”),",
             "ograniczenie przetwarzania,",
             "przenoszenie danych,",
             "sprzeciw wobec przetwarzania opartego na prawnie uzasadnionym interesie,",
@@ -114,8 +114,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "Account data: email address (used to log in; never shown to other users). When you sign in with Google, we receive your email address, name and profile picture from Google.",
-            "Profile data you provide: name, photo, home universities, field, degree and year of study, exchanges (university, semester, status), passions, languages, bio, contact and buddy settings, app language.",
-            "Content you create: private messages, group messages, group memberships, events (including photos) and sign-ups, room listings (including photos), flat check requests, buddy requests, reports and universities you add.",
+            "Listing data you provide: name or nickname, home university, contact links or number (Instagram, Facebook, WhatsApp) and entries: where you are going, where you are or have been and where you can help (university and optional semester).",
+            "We do not collect photos, messages or other content — people contact each other outside the service, through the accounts you provide.",
             "Technical data: IP address, browser and device information and timestamps stored in our providers' logs for security and operation.",
           ],
         ],
@@ -124,12 +124,12 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "3. Purposes and legal bases",
         body: [
           [
-            "Running your account and providing the service (group matching, chats, messages, events): Art. 6(1)(b) GDPR (performance of a contract – the Terms).",
+            "Creating and running your account and showing your listing in the exchange people search: Art. 6(1)(b) GDPR.",
             "Emails necessary for your account (login link, email confirmation): Art. 6(1)(b) GDPR.",
             "Security, abuse prevention, moderation of reported content and legal claims: Art. 6(1)(f) GDPR (legitimate interest).",
             "Legal obligations, e.g. requests from authorities: Art. 6(1)(c) GDPR.",
           ],
-          "Group matching and people suggestions are automated based on your profile (universities, exchanges, semesters, passions). This has no legal or similarly significant effects within the meaning of Art. 22 GDPR.",
+          "We do not use automated decision-making or profiling. The search shows listings matching the chosen country, city and university.",
           "Your email is required to create an account. Other data is optional, but without it matching will be less accurate.",
         ],
       },
@@ -137,13 +137,13 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Who can see your data",
         body: [
           [
-            "Your profile (name, photo, universities, exchanges, passions, languages, bio) is visible to other logged-in users. It is not available to logged-out visitors or search engines.",
-            "Private messages are visible only to conversation participants. Group messages are visible to group members (including guests who join).",
+            "Your listing (name or nickname, contacts, universities and semesters) is visible only to signed-in users. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Can help you”.",
+            "Instagram and Facebook links and your WhatsApp number are provided voluntarily; they lead to those companies' services, whose privacy rules we do not control.",
             "Your email address is never shown to other users.",
           ],
           "We use processors acting on our behalf:",
           [
-            `Supabase Inc.: database, authentication and photo storage (servers in: ${L.dataRegion.en}).`,
+            `Supabase Inc.: database and authentication (servers in: ${L.dataRegion.en}).`,
             "Vercel Inc.: web hosting.",
             "Google LLC: Sign in with Google and sending emails.",
           ],
@@ -153,7 +153,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
       {
         title: "5. Retention",
         body: [
-          "We keep account and profile data until you delete your account. On deletion we immediately remove your profile, photo, universities, exchanges, messages, memberships, events and requests. Provider backups and technical logs may contain them for up to 30 days before being overwritten.",
+          "We keep account and listing data until you delete your account. On deletion we immediately remove your listing, contacts and universities. Provider backups and technical logs may contain them for up to 30 days before being overwritten.",
           "Abuse reports may be kept for up to one year after review where needed to protect other users or defend legal claims.",
         ],
       },
@@ -162,8 +162,8 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         body: [
           [
             "access to your data and a copy of it,",
-            "rectification (most data can be edited in your Profile),",
-            "erasure (the “Delete account” button in your Profile),",
+            "rectification (you can change your data yourself in “My listing”),",
+            "erasure (the “Delete my data” button in “My listing”),",
             "restriction of processing,",
             "data portability,",
             "objection to processing based on legitimate interest,",
@@ -202,14 +202,11 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         body: [
           "Serwis umożliwia bezpłatnie:",
           [
-            "założenie konta i prowadzenie profilu (uczelnie, wymiany, pasje, języki, zdjęcie),",
-            "automatyczne dopasowanie do grup osób o podobnej ścieżce wymiany oraz odkrywanie, zakładanie grup i dołączanie do nich (także jako gość),",
-            "czaty grupowe i wiadomości prywatne,",
-            "wysyłanie i przyjmowanie próśb o buddy,",
-            "tworzenie wydarzeń i zapisywanie się na nie,",
-            "wyszukiwanie innych użytkowników i dodawanie uczelni do bazy.",
+            "założenie konta i prowadzenie wpisu (imię lub ksywka, uczelnia macierzysta, kontakty, wymiany),",
+            "wyszukiwanie osób, które jadą na wymianę, są lub były na wymianie albo mogą pomóc na danej uczelni,",
+            "dodawanie brakujących uczelni do bazy.",
           ],
-          "Umowa o świadczenie usług zostaje zawarta na czas nieokreślony z chwilą założenia konta. Możesz ją rozwiązać w każdej chwili, usuwając konto w zakładce Profil.",
+          "Umowa o świadczenie usług zostaje zawarta na czas nieokreślony z chwilą założenia konta. Możesz ją rozwiązać w każdej chwili, usuwając dane w „Mój wpis”.",
         ],
       },
       {
@@ -246,10 +243,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         title: "§6. Treści użytkowników i kontakty",
         body: [
           "Odpowiadasz za treści, które publikujesz. Udzielasz Usługodawcy nieodpłatnej, niewyłącznej licencji na ich przechowywanie i wyświetlanie w Serwisie na czas, w którym się w nim znajdują.",
-          "Zdjęcia (profilowe i przy wydarzeniach) wgrywasz tylko wtedy, gdy masz do nich prawa: są Twoje albo autor się na to zgodził. Jeśli na zdjęciu widać inne rozpoznawalne osoby, potrzebujesz ich zgody na publikację wizerunku. Nie wgrywaj zdjęć skopiowanych z internetu.",
-          "Ogłoszenia mieszkaniowe i sprawdzenia mieszkań na miejscu to ustalenia między użytkownikami. Usługodawca nie jest stroną umowy najmu ani pośrednikiem w obrocie nieruchomościami, nie weryfikuje ofert i nie przyjmuje płatności za najem. Pokój możesz wystawić tylko w mieście, w którym masz wymianę albo uczelnię, i tylko jeśli masz prawo go przekazać lub podnająć.",
-          "Zdjęcia miast pochodzą z Wikimedia Commons i są używane na wolnych licencjach (np. CC BY-SA). Autora i licencję podajemy w podpisie zdjęcia, który prowadzi do strony źródłowej.",
-          "Usługodawca nie weryfikuje informacji podawanych przez użytkowników (np. o uczelniach, mieszkaniach czy przedmiotach). Relacje buddy, spotkania i wydarzenia są ustaleniami między użytkownikami. Na spotkania offline chodź z rozwagą i nigdy nie wpłacaj pieniędzy nieznajomym bez sprawdzenia.",
+          "Usługodawca nie weryfikuje informacji podawanych przez użytkowników ani kont w serwisach społecznościowych, do których prowadzą wpisy. Kontakt i spotkania to ustalenia między użytkownikami. Na spotkania chodź z rozwagą i nigdy nie wpłacaj pieniędzy nieznajomym (np. zaliczek za mieszkanie) bez sprawdzenia.",
         ],
       },
       {
@@ -296,14 +290,11 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         body: [
           "The Service lets you, free of charge:",
           [
-            "create an account and a profile (universities, exchanges, passions, languages, photo),",
-            "get automatically matched to groups of people with a similar exchange path, and discover, create and join groups (also as a guest),",
-            "use group chats and private messages,",
-            "send and accept buddy requests,",
-            "create and join events,",
-            "search for other users and add universities to the database.",
+            "create an account and a listing (name or nickname, home university, contacts, exchanges),",
+            "search for people going on exchange, there now or before, or able to help at a given university,",
+            "add missing universities to the database.",
           ],
-          "The agreement is concluded for an indefinite period when you create an account. You can terminate it at any time by deleting your account in your Profile.",
+          "The agreement is concluded for an indefinite period when you create an account. You can terminate it at any time by deleting your data in “My listing”.",
         ],
       },
       { title: "§3. Technical requirements", body: ["You need an internet-connected device, an up-to-date browser (e.g. Chrome, Firefox, Safari, Edge) with JavaScript and cookies enabled, and an active email address."] },
@@ -329,10 +320,7 @@ export const TERMS: Record<"pl" | "en", { title: string; updated: string; sectio
         title: "§6. User content and contacts",
         body: [
           "You are responsible for the content you post. You grant the Provider a free, non-exclusive licence to store and display it in the Service for as long as it remains there.",
-          "Upload photos (profile and event photos) only if you have the rights to them: they are yours or the author agreed. If other recognisable people appear in a photo, you need their consent to publish their image. Do not upload photos copied from the internet.",
-          "Housing listings and on-site flat checks are arrangements between users. The Provider is not a party to any rental agreement or a real estate agent, does not verify offers and does not accept rent payments. You may list a room only in a city where you have an exchange or your university, and only if you have the right to pass it on or sublet it.",
-          "City photos come from Wikimedia Commons and are used under free licences (e.g. CC BY-SA). The author and licence are shown in the photo caption, which links to the source page.",
-          "The Provider does not verify information provided by users (e.g. about universities, housing or courses). Buddy relationships, meetups and events are arrangements between users. Meet offline with care and never send money to strangers without checking.",
+          "The Provider does not verify information provided by users or the social media accounts that listings link to. Contact and meetups are arrangements between users. Meet with care and never send money to strangers (e.g. housing deposits) without checking.",
         ],
       },
       {

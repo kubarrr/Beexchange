@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
-import { deleteAccount } from "@/app/actions/bx";
+import { deleteAccount } from "@/app/actions/simple";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
 export function DeleteAccount({ locale }: { locale: Locale }) {

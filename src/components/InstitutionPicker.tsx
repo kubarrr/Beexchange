@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Check, Plus, Search, X } from "lucide-react";
-import { addInstitution } from "@/app/actions/bx";
+import { addInstitution } from "@/app/actions/simple";
 import { InstLine } from "@/components/bx";
 import { ALL_COUNTRY_CODES } from "@/lib/countries";
 import { countryName, type Institution } from "@/lib/domain";

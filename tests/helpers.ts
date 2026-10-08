@@ -42,26 +42,6 @@ export async function inst(name: string) {
 
 // Profil ustawiony bezpośrednio w bazie (dla osób, które nie przechodzą onboardingu w teście)
 // Bez „ex” to lokalny student bez wymiany (np. buddy na uczelni, na którą ktoś jedzie)
-export async function setProfile(bot: Bot, p: { home: number; ex?: number; semester?: string; status?: "going" | "been"; buddy?: boolean; open?: boolean }) {
-  await admin
-    .from("profiles")
-    .update({
-      onboarded: true,
-      status: p.ex ? p.status : "searching",
-      home_institution_id: p.home,
-      exchange_institution_id: p.ex ?? null,
-      semester: p.ex ? p.semester : null,
-      field_of_study: "Finanse",
-      study_year: "bachelor:3",
-      wants_buddy: !!p.buddy,
-      open_to_questions: p.open ?? true,
-      passions: ["coffee", "travel"],
-      languages: ["pl:native", "en:C1"],
-    })
-    .eq("id", bot.id);
-  await admin.from("profile_homes").insert({ user_id: bot.id, institution_id: p.home, field_of_study: "Finanse", study: "bachelor:3", position: 0 });
-  if (p.ex) await admin.from("exchanges").insert({ user_id: bot.id, institution_id: p.ex, semester: p.semester, status: p.status });
-}
 
 export async function cleanup() {
   const { data } = await admin.auth.admin.listUsers({ perPage: 500 });

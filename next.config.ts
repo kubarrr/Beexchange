@@ -1,25 +1,19 @@
 import type { NextConfig } from "next";
 
-// Stare polskie adresy (np. z linków w mailach i zakładek) prowadzą do nowych, angielskich
-const OLD_ROUTES: [string, string][] = [
-  ["/roj", "/swarm"],
-  ["/ludzie", "/people"],
-  ["/mieszkania/nowy", "/housing/new"],
-  ["/mieszkania", "/housing"],
-  ["/wydarzenia/nowe", "/events/new"],
-  ["/wydarzenia", "/events"],
-  ["/czaty", "/chats"],
-  ["/wiadomosci/:id", "/messages/:id"],
-  ["/grupy/:id", "/groups/:id"],
-  ["/grupy", "/groups"],
-  ["/profil", "/profile"],
-  ["/regulamin", "/terms"],
-  ["/prywatnosc", "/privacy"],
+// Wersja prosta: wszystkie podstrony pełnej aplikacji (także stare polskie adresy) prowadzą do wyszukiwarki
+const OLD_ROUTES = [
+  "/swarm", "/people", "/housing/:path*", "/events/:path*", "/chats", "/messages/:path*", "/groups/:path*", "/profile", "/onboarding", "/u/:id",
+  "/roj", "/ludzie", "/mieszkania/:path*", "/wydarzenia/:path*", "/czaty", "/wiadomosci/:path*", "/grupy/:path*", "/profil",
+  "/regulamin", "/prywatnosc",
 ];
 
 const nextConfig: NextConfig = {
   async redirects() {
-    return OLD_ROUTES.map(([source, destination]) => ({ source, destination, permanent: true }));
+    return OLD_ROUTES.map((source) => ({
+      source,
+      destination: source === "/regulamin" ? "/terms" : source === "/prywatnosc" ? "/privacy" : source === "/profile" || source === "/profil" ? "/me" : "/",
+      permanent: false,
+    }));
   },
 };
 

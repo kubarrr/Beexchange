@@ -1,63 +1,167 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ArrowRight, CalendarDays, GraduationCap, Hexagon } from "lucide-react";
-import { BeeMark, Wordmark } from "@/components/Logo";
+import { Avatar, Flag } from "@/components/bx";
 import { getCurrentUser } from "@/lib/auth";
+import { cityName } from "@/lib/cities";
+import { ALL_COUNTRY_CODES } from "@/lib/countries";
+import { INSTITUTION_FIELDS, countryName, institutionName, semesterLabel, semesterPhase, type Institution } from "@/lib/domain";
 import { getDictionary } from "@/lib/i18n";
+import { SearchForm } from "./SearchForm";
+
+const TABS = ["going", "been", "helper"] as const;
+type Tab = (typeof TABS)[number];
+
+type Hit = {
+  entry_id: number;
+  user_id: string;
+  display_name: string;
+  instagram: string | null;
+  facebook: string | null;
+  whatsapp: string | null;
+  home_id: number | null;
+  institution_id: number;
+  semester: string | null;
+};
+
+const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 
 export default async function Home({ searchParams }: PageProps<"/">) {
-  const { deleted } = await searchParams;
-  const { userId } = await getCurrentUser();
-  if (userId) redirect("/swarm");
-  const { t } = await getDictionary();
+  const sp = await searchParams;
+  const { supabase, userId } = await getCurrentUser();
+  const { t, locale } = await getDictionary();
 
-  const features = [
-    { Icon: Hexagon, title: t.landing.f1t, text: t.landing.f1d },
-    { Icon: GraduationCap, title: t.landing.f2t, text: t.landing.f2d },
-    { Icon: CalendarDays, title: t.landing.f3t, text: t.landing.f3d },
-  ];
+  const tab: Tab = TABS.includes(str(sp.tab) as Tab) ? (str(sp.tab) as Tab) : "going";
+  const cc = /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
+  const city = str(sp.city).slice(0, 80);
+  const instId = Number(str(sp.inst)) || null;
+  const ready = !!cc && !!city;
+
+  const inst = instId ? ((await supabase.from("institutions").select(INSTITUTION_FIELDS).eq("id", instId).maybeSingle()).data as Institution | null) : null;
+  const args = { p_kind: tab, p_cc: cc, p_city: city, p_inst: instId };
+
+  // Zalogowani widzą osoby, niezalogowani tylko liczbę
+  let hits: Hit[] = [];
+  let count = 0;
+  if (ready && userId) {
+    hits = ((await supabase.rpc("simple_search", args)).data ?? []) as Hit[];
+    count = hits.length;
+  } else if (ready) {
+    count = ((await supabase.rpc("simple_count", args)).data as number | null) ?? 0;
+  }
+
+  // Uczelnie z wyników (uczelnia wpisu i uczelnia macierzysta)
+  const ids = [...new Set(hits.flatMap((h) => [h.institution_id, h.home_id]).filter((x): x is number => !!x))];
+  const insts = new Map<number, Institution>();
+  if (ids.length) for (const i of ((await supabase.from("institutions").select(INSTITUTION_FIELDS).in("id", ids)).data ?? []) as Institution[]) insts.set(i.id, i);
+
+  const countries = ALL_COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) })).sort((a, b) => a.n.localeCompare(b.n, locale));
+  const tabHref = (k: Tab) => `/?${new URLSearchParams({ tab: k, ...(cc ? { cc } : {}), ...(city ? { city } : {}), ...(instId ? { inst: String(instId) } : {}) }).toString()}`;
+  const loginHref = `/login?next=${encodeURIComponent(tabHref(tab))}`;
 
   return (
-    <>
-      {deleted === "1" && <p className="bg-ink px-4 py-3 text-center text-sm font-semibold text-honey">{t.profile.deleted}</p>}
-      <section className="honeycomb relative overflow-hidden border-b-4 border-ink bg-honey">
-        <div className="mx-auto grid max-w-5xl items-center gap-10 px-5 py-14 md:grid-cols-[1.3fr_1fr] md:py-20">
-          <div className="space-y-6">
-            <span className="inline-block -rotate-3 rounded-full bg-ink px-3 py-1.5 text-[13px] font-semibold text-honey">{t.landing.sticker}</span>
-            <h1 className="display text-[44px] leading-[1] break-words sm:text-6xl">{t.landing.title}</h1>
-            <p className="max-w-lg text-lg leading-relaxed">{t.landing.lead}</p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/login" className="btn-primary min-h-14 px-7 text-lg">
-                {t.landing.cta} <ArrowRight size={20} strokeWidth={2.5} />
-              </Link>
-              <Link href="/login" className="btn-outline min-h-14 px-6 text-base">
-                {t.landing.haveAccount}
-              </Link>
-            </div>
-          </div>
-          <div className="hidden flex-col items-center gap-2 md:flex">
-            <svg viewBox="0 0 400 110" className="w-full max-w-sm" aria-hidden="true">
-              <path d="M10 100 C 90 100, 150 40, 250 64 S 330 60, 344 44" fill="none" stroke="#17140F" strokeWidth="3" strokeDasharray="7 8" strokeLinecap="round" />
-            </svg>
-            <div className="-mt-24 ml-64 rotate-6">
-              <BeeMark size={150} body="#FFF7E2" />
-            </div>
-            <Wordmark className="mt-2 text-5xl" />
-          </div>
-        </div>
-      </section>
+    <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
+      {sp.deleted === "1" && <p className="rounded-2xl bg-ink px-4 py-3 text-center text-sm font-semibold text-honey">{t.profile.deleted}</p>}
 
-      <section className="mx-auto grid max-w-5xl gap-4 px-5 py-12 md:grid-cols-3">
-        {features.map(({ Icon, title, text }) => (
-          <div key={title} className="panel p-6">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-ink text-honey">
-              <Icon size={22} />
-            </span>
-            <h2 className="display mt-4 text-xl">{title}</h2>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{text}</p>
-          </div>
+      <div>
+        <h1 className="display text-[34px] leading-[1.05]">{t.simple.title}</h1>
+        <p className="mt-1.5 text-[15px] text-muted">{t.simple.lead}</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1 rounded-2xl bg-sand p-1">
+        {TABS.map((k) => (
+          <Link
+            key={k}
+            href={tabHref(k)}
+            aria-current={tab === k ? "page" : undefined}
+            className={`flex min-h-12 items-center justify-center rounded-xl px-1 text-center text-sm leading-tight font-bold ${tab === k ? "bg-ink text-honey" : ""}`}
+          >
+            {t.simple.tabs[k]}
+          </Link>
         ))}
-      </section>
-    </>
+      </div>
+      <p className="text-sm text-muted">{t.simple.tabLead[tab]}</p>
+
+      <SearchForm key={`${cc}:${city}:${instId}`} locale={locale} tab={tab} initial={{ cc, city, inst }} countries={countries} />
+
+      {!ready ? (
+        <p className="rounded-2xl bg-sand px-4 py-3 text-sm">{t.simple.needPlace}</p>
+      ) : (
+        <section className="space-y-3">
+          <p className="flex items-center gap-2 font-bold">
+            <Flag code={cc} className="h-3.5 w-5" />
+            {cityName(city, locale)}
+            {inst && ` · ${institutionName(inst)}`}
+            <span className="font-normal text-muted">· {t.simple.found(count)}</span>
+          </p>
+
+          {!userId && count > 0 && (
+            <div className="rounded-[22px] bg-ink p-5 text-cream">
+              <p className="text-[15px]">{t.simple.loginToSee}</p>
+              <Link href={loginHref} className="btn-honey mt-4 min-h-12 w-full">
+                {t.simple.loginCta}
+              </Link>
+            </div>
+          )}
+
+          {hits.map((h) => {
+            const at = insts.get(h.institution_id);
+            const home = h.home_id ? insts.get(h.home_id) : null;
+            const now = h.semester && semesterPhase(h.semester) === "now";
+            return (
+              <article key={h.entry_id} className="panel flex items-start gap-3 p-4">
+                <Avatar name={h.display_name} size={48} />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="text-[17px] leading-tight font-bold">{h.display_name}</p>
+                  {at && (
+                    <p className="flex min-w-0 items-start gap-1.5 text-[13px] font-semibold text-honey-700">
+                      <Flag code={at.country_code} className="mt-[3px] h-3 w-[18px]" />
+                      <span>
+                        {institutionName(at)}
+                        {h.semester && ` · ${semesterLabel(h.semester, t)}`}
+                        {now && ` · ${t.simple.now}`}
+                      </span>
+                    </p>
+                  )}
+                  {/* Uczelnia macierzysta tylko przy „Pomogą Ci” */}
+                  {tab === "helper" && home && (
+                    <p className="flex min-w-0 items-start gap-1.5 text-[13px]">
+                      <Flag code={home.country_code} className="mt-[3px] h-3 w-[18px]" />
+                      <span>
+                        {t.simple.from} {institutionName(home)}
+                      </span>
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {h.instagram && (
+                      <a href={`https://instagram.com/${h.instagram}`} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#E1306C] px-3 py-1.5 text-xs font-bold text-white">
+                        Instagram
+                      </a>
+                    )}
+                    {h.facebook && (
+                      <a href={h.facebook} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#1877F2] px-3 py-1.5 text-xs font-bold text-white">
+                        Facebook
+                      </a>
+                    )}
+                    {h.whatsapp && (
+                      <a href={`https://wa.me/${h.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-bold text-ink">
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+
+          {count === 0 && (
+            <div className="rounded-[22px] border-2 border-dashed border-line p-5 text-center">
+              <p className="text-sm">{t.simple.beFirst}</p>
+              <Link href={userId ? "/me" : "/login?next=/me"} className="btn-primary mt-3">
+                {t.simple.addMe}
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
   );
 }

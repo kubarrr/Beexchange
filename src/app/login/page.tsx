@@ -8,7 +8,7 @@ export const generateMetadata = localizedTitle((t) => t.login.title);
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next, error } = await searchParams;
-  const nextPath = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/swarm";
+  const nextPath = typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/";
   const { t, locale } = await getDictionary();
   const errorText =
     error === "otp_expired" || error === "access_denied"

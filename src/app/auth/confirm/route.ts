@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = (searchParams.get("type") ?? "email") as EmailOtpType;
-  const next = searchParams.get("next") ?? "/swarm";
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/swarm";
+  const next = searchParams.get("next") ?? "/";
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   if (!tokenHash) return NextResponse.redirect(`${origin}/login?error=missing_token`);
 
@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error?.code ?? "verify_failed")}`);
   }
 
-  const { data: profile } = await supabase.from("profiles").select("home_institution_id").eq("id", data.user.id).single();
-  if (profile && !profile.home_institution_id) return NextResponse.redirect(`${origin}/onboarding`);
+  // Nowa osoba bez wpisu → najpierw „Mój wpis” (chyba że szła do konkretnej wyszukiwarki)
+  const { data: person } = await supabase.from("simple_people").select("user_id").eq("user_id", data.user.id).maybeSingle();
+  if (!person && safeNext === "/") return NextResponse.redirect(`${origin}/me`);
   return NextResponse.redirect(`${origin}${safeNext}`);
 }

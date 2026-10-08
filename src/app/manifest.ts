@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "BeeXchange: exchange together",
     short_name: "BeeXchange",
     description: "Znajdź ludzi, którzy lecą na wymianę tam, gdzie Ty.",
-    start_url: "/swarm",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

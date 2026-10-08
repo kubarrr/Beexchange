@@ -2,9 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Onest } from "next/font/google";
 import Link from "next/link";
 import { Header } from "@/components/Header";
-import { BottomNav } from "@/components/AppNav";
-import { SectionBackground } from "@/components/SectionBackground";
-import { getCurrentUser, unreadTotal } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import "./globals.css";
 
@@ -25,17 +22,13 @@ export const viewport: Viewport = { themeColor: "#FFC52E" };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const { t, locale } = await getDictionary();
-  const { userId } = await getCurrentUser();
-  const unread = await unreadTotal();
 
   return (
     <html lang={locale} className={`${onest.variable} ${bricolage.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
-        {userId && <SectionBackground />}
         <Header />
-        <main className={`flex-1 ${userId ? "pb-28 md:pb-10" : ""}`}>{children}</main>
-        {userId && <BottomNav locale={locale} unread={unread} />}
-        <footer className={`border-t border-line py-6 text-center text-xs text-muted ${userId ? "hidden md:block" : ""}`}>
+        <main className="flex-1 pb-10">{children}</main>
+        <footer className="border-t border-line py-6 text-center text-xs text-muted">
           <p>{t.footer.made}</p>
           <p className="mt-2 flex justify-center gap-4">
             <Link href="/terms" className="hover:text-ink">
