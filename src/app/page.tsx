@@ -99,7 +99,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       {tab === "helper" && (
         <div className="flex gap-2">
           {(["home", "host"] as const).map((m) => (
-            <Link key={m} href={tabHref("helper", m)} aria-current={mode === m ? "page" : undefined} className={`chip flex-1 justify-center ${mode === m ? "chip-on" : ""}`}>
+            <Link key={m} href={tabHref("helper", m)} aria-current={mode === m ? "page" : undefined} className={`chip flex-1 justify-center gap-1.5 ${mode === m ? "chip-on" : ""}`}>
+              <span aria-hidden="true">{m === "home" ? "🐝" : "🗺️"}</span>
               {t.simple.buddyModes[m]}
             </Link>
           ))}
