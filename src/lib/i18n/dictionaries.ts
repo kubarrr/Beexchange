@@ -479,7 +479,7 @@ const pl = {
   ],
   report: { button: "Zgłoś", reason: "Powód (np. oszustwo, spam)", send: "Wyślij", sent: "Dziękujemy, zgłoszenie wysłane" },
   meta: { description: "Znajdź ludzi, którzy lecą na wymianę tam, gdzie Ty. Grupy dopasowane do uczelni i semestru, absolwenci, buddy i wydarzenia." },
-  footer: { terms: "Regulamin", privacy: "Prywatność", made: "Stworzone przez studentów po wymianach" },
+  footer: { terms: "Regulamin", privacy: "Prywatność", made: "Stworzone przez studentów dla studentów" },
 };
 
 export type Dictionary = typeof pl;
@@ -964,7 +964,7 @@ const en: Dictionary = {
   ],
   report: { button: "Report", reason: "Reason (e.g. scam, spam)", send: "Send", sent: "Thanks, report sent" },
   meta: { description: "Find people flying on exchange where you are going. Groups matched by university and semester, alumni, buddies and events." },
-  footer: { terms: "Terms", privacy: "Privacy", made: "Made by students who have been on exchange" },
+  footer: { terms: "Terms", privacy: "Privacy", made: "Made by students for students" },
 };
 
 export const dictionaries = { pl, en };
