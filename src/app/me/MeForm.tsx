@@ -66,23 +66,12 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
 
   return (
     <div className="space-y-8">
+      {/* Kolejność: imię → wymiany (i 🏠) → uczelnia macierzysta (i 🧸) → kontakty */}
       <section className="space-y-4">
         <label className="block space-y-1.5">
           <span className="label-caps">{t.simple.name}</span>
           <input className="field font-semibold" value={me.display_name} placeholder={t.simple.namePh} maxLength={60} onChange={(e) => set({ display_name: e.target.value })} />
         </label>
-        <div className="space-y-1.5">
-          <span className="label-caps">{t.simple.homeUni}</span>
-          <InstitutionPicker locale={locale} value={me.home} onChange={(home) => set({ home })} prefer="PL" />
-          <p className="text-xs text-muted">{t.simple.homeUniHint}</p>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="label-caps">{t.simple.contacts}</h2>
-        {contact("instagram", t.simple.instagramPh)}
-        {contact("facebook", t.simple.facebookPh)}
-        {contact("whatsapp", t.simple.whatsappPh, "tel")}
       </section>
 
       <section className="space-y-3">
@@ -125,7 +114,6 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
           </button>
         )}
       </section>
-
       <button type="button" aria-pressed={me.looking_for_housing} onClick={() => set({ looking_for_housing: !me.looking_for_housing })} className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-left">
         <span className="min-w-0 flex-1">
           <span className="block font-semibold">{t.simple.housing}</span>
@@ -133,19 +121,34 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
         </span>
         <Switch on={me.looking_for_housing} />
       </button>
-      <button
-        type="button"
-        aria-pressed={me.is_buddy}
-        disabled={!me.home}
-        onClick={() => set({ is_buddy: !me.is_buddy })}
-        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-left disabled:opacity-60"
-      >
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold">{t.simple.buddy}</span>
-          <span className="block text-xs text-muted">{me.home ? t.simple.buddyHint : t.simple.buddyNeedsHome}</span>
-        </span>
-        <Switch on={me.is_buddy && !!me.home} />
-      </button>
+
+      <section className="space-y-3">
+        <div className="space-y-1.5">
+          <span className="label-caps">{t.simple.homeUni}</span>
+          <InstitutionPicker locale={locale} value={me.home} onChange={(home) => set({ home })} prefer="PL" />
+          <p className="text-xs text-muted">{t.simple.homeUniHint}</p>
+        </div>
+        <button
+          type="button"
+          aria-pressed={me.is_buddy}
+          disabled={!me.home}
+          onClick={() => set({ is_buddy: !me.is_buddy })}
+          className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-left disabled:opacity-60"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">{t.simple.buddy}</span>
+            <span className="block text-xs text-muted">{me.home ? t.simple.buddyHint : t.simple.buddyNeedsHome}</span>
+          </span>
+          <Switch on={me.is_buddy && !!me.home} />
+        </button>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="label-caps">{t.simple.contacts}</h2>
+        {contact("instagram", t.simple.instagramPh)}
+        {contact("facebook", t.simple.facebookPh)}
+        {contact("whatsapp", t.simple.whatsappPh, "tel")}
+      </section>
 
       {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <button type="button" onClick={submit} disabled={pending} className="btn-primary sticky bottom-4 min-h-14 w-full text-lg">

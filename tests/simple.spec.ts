@@ -54,13 +54,14 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await a.goto("/me");
     await expect(a.getByRole("heading", { name: "Twój profil" })).toBeVisible();
     await a.getByLabel("Imię lub ksywka").fill("Ania T.");
-    await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).first().fill("sgh");
-    await a.getByRole("button", { name: /Szkoła Główna Handlowa/ }).first().click();
-    await a.getByLabel("Instagram").fill("https://instagram.com/ania.test/");
-    // wpis: jadę na Bocconi, lato 2026/27
+    // najpierw wymiana: Bocconi, lato 2026/27
     await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).first().fill("bocconi");
     await a.getByRole("button", { name: /Bocconi/ }).first().click();
     await a.getByLabel("Semestr").selectOption({ label: "lato 2026/27" });
+    // potem uczelnia macierzysta (zostało już tylko to pole wyszukiwania)
+    await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).first().fill("sgh");
+    await a.getByRole("button", { name: /Szkoła Główna Handlowa/ }).first().click();
+    await a.getByLabel("Instagram").fill("https://instagram.com/ania.test/");
     await a.getByRole("button", { name: /Szukam mieszkania/ }).click();
     await a.getByRole("button", { name: /Jestem buddy/ }).click();
     await noSideScroll(a);
