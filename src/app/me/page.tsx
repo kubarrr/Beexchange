@@ -14,7 +14,7 @@ export default async function MePage() {
   const { t, locale } = await getDictionary();
 
   const [{ data: person }, { data: entries }, { data: profile }] = await Promise.all([
-    supabase.from("simple_people").select(`display_name, instagram, facebook, whatsapp, home:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).maybeSingle(),
+    supabase.from("simple_people").select(`display_name, instagram, facebook, whatsapp, looking_for_housing, home:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).maybeSingle(),
     supabase.from("simple_entries").select(`kind, semester, inst:institutions(${INSTITUTION_FIELDS})`).eq("user_id", userId).order("created_at"),
     // Imię z konta Google jako podpowiedź przy pierwszym wpisie
     supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
@@ -26,7 +26,12 @@ export default async function MePage() {
     instagram: person?.instagram ?? "",
     facebook: person?.facebook ?? "",
     whatsapp: person?.whatsapp ?? "",
-    entries: ((entries ?? []) as unknown as { kind: EntryKind; semester: string | null; inst: Institution | null }[]).map((e) => ({ kind: e.kind, inst: e.inst, semester: e.semester })),
+    looking_for_housing: person?.looking_for_housing ?? false,
+    entries: ((entries ?? []) as unknown as { kind: string; semester: string | null; inst: Institution | null }[]).map((e) => ({
+      kind: (e.kind === "helper" ? "helper" : "exchange") as EntryKind,
+      inst: e.inst,
+      semester: e.semester,
+    })),
   };
 
   return (

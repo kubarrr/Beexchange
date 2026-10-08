@@ -20,6 +20,7 @@ type Hit = {
   home_id: number | null;
   institution_id: number;
   semester: string | null;
+  looking_for_housing: boolean;
 };
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
@@ -110,7 +111,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <article key={h.entry_id} className="panel flex items-start gap-3 p-4">
                 <Avatar name={h.display_name} size={48} />
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <p className="text-[17px] leading-tight font-bold">{h.display_name}</p>
+                  <p className="flex flex-wrap items-center gap-1.5 text-[17px] leading-tight font-bold">
+                    {h.display_name}
+                    {h.looking_for_housing && tab !== "helper" && (
+                      <span className="rounded-full bg-sand px-2 py-0.5 text-[11px] font-bold">🏠 {t.simple.lookingForHousing}</span>
+                    )}
+                  </p>
                   {at && (
                     <p className="flex min-w-0 items-start gap-1.5 text-[13px] font-semibold text-honey-700">
                       <Flag code={at.country_code} className="mt-[3px] h-3 w-[18px]" />

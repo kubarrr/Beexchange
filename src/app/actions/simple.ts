@@ -3,17 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { INSTITUTION_FIELDS, type Institution } from "@/lib/domain";
+import { INSTITUTION_FIELDS, semesterPhase, type Institution } from "@/lib/domain";
 
 const clip = (s: unknown, max: number) => String(s ?? "").trim().slice(0, max);
 
-export type EntryKind = "going" | "been" | "helper";
+// W formularzu: wymiana (uczelnia + semestr) albo pomoc (sama uczelnia)
+export type EntryKind = "exchange" | "helper";
 export type MeInput = {
   display_name: string;
   home_institution_id: number | null;
   instagram: string;
   facebook: string;
   whatsapp: string;
+  looking_for_housing: boolean;
   entries: { kind: EntryKind; institution_id: number; semester: string | null }[];
 };
 
@@ -42,13 +44,13 @@ export async function saveMe(input: MeInput): Promise<{ ok: true } | { ok: false
 
   const seen = new Set<string>();
   const entries = (input.entries ?? [])
-    .filter((e) => ["going", "been", "helper"].includes(e.kind) && Number.isInteger(e.institution_id))
+    // wymiana musi mieć semestr — z niego wynika, czy osoba jedzie, czy już jest lub była
+    .filter((e) => Number.isInteger(e.institution_id) && (e.kind === "helper" || (e.kind === "exchange" && /^\d{4}[WS]$/.test(e.semester ?? ""))))
     .map((e) => ({
       user_id: userId,
-      kind: e.kind,
+      kind: e.kind === "helper" ? "helper" : semesterPhase(e.semester) === "upcoming" ? "going" : "been",
       institution_id: e.institution_id,
-      // przy „pomagam” semestr nie ma znaczenia
-      semester: e.kind !== "helper" && /^\d{4}[WS]$/.test(e.semester ?? "") ? e.semester : null,
+      semester: e.kind === "helper" ? null : e.semester,
     }))
     .filter((e) => {
       const k = `${e.kind}:${e.institution_id}:${e.semester ?? ""}`;
@@ -62,6 +64,7 @@ export async function saveMe(input: MeInput): Promise<{ ok: true } | { ok: false
     display_name: name,
     home_institution_id: Number.isInteger(input.home_institution_id) ? input.home_institution_id : null,
     ...contacts,
+    looking_for_housing: !!input.looking_for_housing,
     updated_at: new Date().toISOString(),
   });
   if (error) return { ok: false, error: error.message };

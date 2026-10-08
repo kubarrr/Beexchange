@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { saveMe, type EntryKind } from "@/app/actions/simple";
 import { InstitutionPicker } from "@/components/InstitutionPicker";
+import { Switch } from "@/components/bx";
 import { semesterLabel, semesterOptions, semesterPhase, type Institution } from "@/lib/domain";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 
@@ -15,20 +16,16 @@ export type MeInitial = {
   instagram: string;
   facebook: string;
   whatsapp: string;
+  looking_for_housing: boolean;
   entries: Entry[];
 };
 
-const KINDS: EntryKind[] = ["going", "been", "helper"];
-
-// Semestry pasujące do wpisu: „jadę” — bieżący i przyszłe, „jestem/byłem” — bieżący i przeszłe
-function semestersFor(kind: EntryKind) {
-  return semesterOptions().filter((c) => (kind === "going" ? semesterPhase(c) !== "past" : semesterPhase(c) !== "upcoming"));
-}
+const KINDS: EntryKind[] = ["exchange", "helper"];
 
 export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial }) {
   const t = dictionaries[locale];
   const router = useRouter();
-  const [me, setMe] = useState<MeInitial>({ ...initial, entries: initial.entries.length ? initial.entries : [{ kind: "going", inst: null, semester: null }] });
+  const [me, setMe] = useState<MeInitial>({ ...initial, entries: initial.entries.length ? initial.entries : [{ kind: "exchange", inst: null, semester: null }] });
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [pending, start] = useTransition();
@@ -47,6 +44,7 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
         instagram: me.instagram,
         facebook: me.facebook,
         whatsapp: me.whatsapp,
+        looking_for_housing: me.looking_for_housing,
         entries: me.entries.filter((e) => e.inst).map((e) => ({ kind: e.kind, institution_id: e.inst!.id, semester: e.semester })),
       });
       if (!res.ok) {
@@ -94,13 +92,13 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
         {me.entries.map((e, i) => (
           <div key={i} className="panel space-y-3 p-4">
             <div className="flex items-center gap-2">
-              <div className="grid flex-1 grid-cols-3 gap-1 rounded-2xl bg-sand p-1">
+              <div className="grid flex-1 grid-cols-2 gap-1 rounded-2xl bg-sand p-1">
                 {KINDS.map((k) => (
                   <button
                     key={k}
                     type="button"
                     aria-pressed={e.kind === k}
-                    onClick={() => setEntry(i, { kind: k, semester: e.semester && k !== "helper" && semestersFor(k).includes(e.semester) ? e.semester : null })}
+                    onClick={() => setEntry(i, { kind: k, semester: k === "helper" ? null : e.semester })}
                     className={`min-h-10 rounded-xl px-1 text-[13px] leading-tight font-semibold ${e.kind === k ? "bg-ink text-honey" : ""}`}
                   >
                     {t.simple.kinds[k]}
@@ -115,14 +113,17 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
             </div>
             <p className="text-xs font-semibold text-muted">{t.simple.kindHint[e.kind]}</p>
             <InstitutionPicker locale={locale} value={e.inst} onChange={(inst) => setEntry(i, { inst })} />
-            {e.kind !== "helper" && (
+            {e.kind === "exchange" && (
               <label className="block space-y-1.5">
                 <span className="text-sm font-semibold">{t.simple.semester}</span>
-                <select className="field" value={e.semester ?? ""} onChange={(ev) => setEntry(i, { semester: ev.target.value || null })}>
-                  <option value="">{t.simple.noSemester}</option>
-                  {semestersFor(e.kind).map((c) => (
+                <select className="field" value={e.semester ?? ""} required onChange={(ev) => setEntry(i, { semester: ev.target.value || null })}>
+                  <option value="" disabled>
+                    {t.simple.pickSemester}
+                  </option>
+                  {semesterOptions().map((c) => (
                     <option key={c} value={c}>
                       {semesterLabel(c, t)}
+                      {semesterPhase(c) === "now" ? ` · ${t.simple.now}` : ""}
                     </option>
                   ))}
                 </select>
@@ -130,12 +131,20 @@ export function MeForm({ locale, initial }: { locale: Locale; initial: MeInitial
             )}
           </div>
         ))}
-        {me.entries.length < 10 && me.entries.every((e) => e.inst) && (
+        {me.entries.length < 10 && me.entries.every((e) => e.inst && (e.kind === "helper" || e.semester)) && (
           <button type="button" onClick={() => set({ entries: [...me.entries, { kind: "helper", inst: null, semester: null }] })} className="btn-outline w-full border-dashed">
             <Plus size={16} /> {t.simple.addEntry}
           </button>
         )}
       </section>
+
+      <button type="button" aria-pressed={me.looking_for_housing} onClick={() => set({ looking_for_housing: !me.looking_for_housing })} className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-left">
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">{t.simple.housing}</span>
+          <span className="block text-xs text-muted">{t.simple.housingHint}</span>
+        </span>
+        <Switch on={me.looking_for_housing} />
+      </button>
 
       {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <button type="button" onClick={submit} disabled={pending} className="btn-primary sticky bottom-4 min-h-14 w-full text-lg">

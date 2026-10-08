@@ -63,13 +63,16 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     // wpis: jadę na Bocconi, lato 2026/27
     await a.getByRole("textbox", { name: "Uczelnia, skrót albo miasto" }).first().fill("bocconi");
     await a.getByRole("button", { name: /Bocconi/ }).first().click();
-    await a.getByLabel("Semestr (opcjonalnie)").selectOption({ label: "lato 2026/27" });
+    await a.getByLabel("Semestr").selectOption({ label: "lato 2026/27" });
+    await a.getByRole("button", { name: /Szukam mieszkania/ }).click();
     await noSideScroll(a);
     await shot(a, "s2-moj-wpis");
     await a.getByRole("button", { name: "Zapisz" }).click();
     await expect(a.getByRole("button", { name: /Zapisano/ })).toBeVisible();
     const { data } = await admin.from("simple_people").select("display_name, instagram").eq("user_id", ania.id).single();
     expect(data).toEqual({ display_name: "Ania T.", instagram: "ania.test" });
+    const { data: entry } = await admin.from("simple_entries").select("kind, semester").eq("user_id", ania.id).single();
+    expect(entry).toEqual({ kind: "going", semester: "2027S" });
   });
 
   test("Zalogowana: widzi siebie w „Jadą” z działającym linkiem", async () => {
@@ -78,6 +81,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await expect(card).toContainText("lato 2026/27");
     await expect(card.getByRole("link", { name: "Instagram" })).toHaveAttribute("href", "https://instagram.com/ania.test");
     await expect(card).not.toContainText("Studiuje na");
+    await expect(card).toContainText("🏠 szuka mieszkania");
     await shot(a, "s3-jada");
   });
 

@@ -85,6 +85,19 @@ const search = (b, kind, cc, city, inst = null) => b.db.rpc("simple_search", { p
   check("Pomogą na SGH → nie Ola (ona pomaga na PW)", !names((await search(zosia, "helper", "PL", "Warsaw", SGH)).data).includes("Bot Ola"));
 }
 
+section("Zakładka wynika z semestru");
+{
+  // Giulia zapisała kiedyś „jadę” na semestr, który już minął → sama trafia do „są lub byli”
+  await giulia.db.from("simple_entries").insert({ user_id: giulia.id, kind: "going", institution_id: BOC, semester: "2026S" });
+  check("Minął semestr „jadę” → osoba jest w „Są lub byli”", names((await search(zosia, "been", "IT", "Milan", BOC)).data).includes("Bot Giulia"));
+  check("…i nie ma jej już w „Jadą”", !names((await search(zosia, "going", "IT", "Milan", BOC)).data).includes("Bot Giulia"));
+  // bieżący semestr (zima 2026/27) liczy się jako „są lub byli”
+  check("Bieżący semestr → „Są lub byli” (Ola, zima 2026/27)", names((await search(zosia, "been", "IT", "Milan", POLIMI)).data).includes("Bot Ola"));
+  await giulia.db.from("simple_people").update({ looking_for_housing: true }).eq("user_id", giulia.id);
+  const h = (await search(zosia, "been", "IT", "Milan", BOC)).data?.find((r) => r.display_name === "Bot Giulia");
+  check("Wyniki niosą znacznik 🏠 szuka mieszkania", h?.looking_for_housing === true);
+}
+
 section("Niezalogowani widzą tylko liczbę");
 {
   const { data: people } = await anon.from("simple_people").select("display_name, instagram");
