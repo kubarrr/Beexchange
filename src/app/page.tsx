@@ -72,7 +72,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
       <section className="relative overflow-hidden rounded-[28px] border-[3px] border-ink bg-honey px-5 pt-6 pb-5">
         <svg viewBox="0 0 400 120" className="pointer-events-none absolute -right-6 -bottom-2 w-[70%] opacity-90" aria-hidden="true">
-          <path d="M10 110 C 100 110, 160 50, 260 70 S 340 60, 360 34" fill="none" stroke="#17140F" strokeWidth="3" strokeDasharray="7 8" strokeLinecap="round" />
+          <path d="M10 110 C 100 110, 160 50, 260 70 S 340 60, 360 34" fill="none" stroke="#17140F" strokeOpacity="0.18" strokeWidth="3" strokeDasharray="7 8" strokeLinecap="round" />
         </svg>
         <span className="absolute top-4 right-5 rotate-12 text-[40px]" aria-hidden="true">
           ✈️
