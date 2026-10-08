@@ -29,7 +29,7 @@ export async function Header() {
             ))}
           </form>
           <Link href={userId ? "/me" : "/login?next=/me"} className="btn-honey min-h-9 shrink-0 bg-ink px-3 text-xs whitespace-nowrap text-honey hover:bg-black">
-            {userId ? t.simple.myEntry : t.simple.addMe}
+            {t.simple.myEntry}
           </Link>
         </div>
       </div>
