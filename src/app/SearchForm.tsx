@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { InstitutionPicker } from "@/components/InstitutionPicker";
 import { cityName } from "@/lib/cities";
-import type { Institution } from "@/lib/domain";
+import { currentSemester, nextSemester, semesterLabel, semesterOptions, semesterPhase, type Institution } from "@/lib/domain";
 import { dictionaries, type Locale } from "@/lib/i18n/dictionaries";
 import { createClient } from "@/lib/supabase/client";
 
@@ -18,7 +18,7 @@ export function SearchForm({
 }: {
   locale: Locale;
   tab: string;
-  initial: { cc: string; city: string; inst: Institution | null };
+  initial: { cc: string; city: string; inst: Institution | null; sem: string | null; from: string | null };
   countries: { c: string; n: string }[];
 }) {
   const t = dictionaries[locale];
@@ -26,6 +26,17 @@ export function SearchForm({
   const [cc, setCc] = useState(initial.cc);
   const [city, setCity] = useState(initial.city);
   const [inst, setInst] = useState<Institution | null>(initial.inst);
+  const [sem, setSem] = useState(initial.sem ?? "");
+  const [from, setFrom] = useState(initial.from ?? "");
+  // „Jadą”: najbliższe przyszłe semestry; „Są lub byli”: bieżący i wcześniejsze
+  const next1 = nextSemester(currentSemester());
+  const next2 = nextSemester(next1);
+  const sems =
+    tab === "going"
+      ? [next1, next2, nextSemester(next2)]
+      : tab === "been"
+        ? semesterOptions().filter((c) => semesterPhase(c) !== "upcoming")
+        : [];
   const [cities, setCities] = useState<{ c: string; n: string }[]>([]);
 
   useEffect(() => {
@@ -58,6 +69,8 @@ export function SearchForm({
         if (!cc || !city) return;
         const sp = new URLSearchParams({ tab, cc, city });
         if (inst) sp.set("inst", String(inst.id));
+        if (sem) sp.set("sem", sem);
+        if (from) sp.set("from", from);
         router.push(`/?${sp.toString()}`);
       }}
       className="panel space-y-4 p-4"
@@ -105,6 +118,33 @@ export function SearchForm({
         <span className="label-caps">{t.simple.uni}</span>
         <InstitutionPicker locale={locale} value={inst} onChange={pickInst} prefer={cc || undefined} />
       </div>
+      {sems.length > 0 && (
+        <div className="grid grid-cols-2 items-end gap-2">
+          <label className="space-y-1.5">
+            <span className="label-caps">{t.simple.semesterFilter}</span>
+            <select className="field pr-1 pl-3 text-sm" value={sem} onChange={(e) => setSem(e.target.value)}>
+              <option value="">{t.simple.anySemester}</option>
+              {sems.map((c) => (
+                <option key={c} value={c}>
+                  {semesterLabel(c, t)}
+                  {semesterPhase(c) === "now" ? ` · ${t.simple.now}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1.5">
+            <span className="label-caps">{t.simple.fromFilter}</span>
+            <select className="field pr-1 pl-3 text-sm" value={from} onChange={(e) => setFrom(e.target.value)}>
+              <option value="">{t.simple.anyCountry}</option>
+              {countries.map(({ c, n }) => (
+                <option key={c} value={c}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
       <button className="btn-primary min-h-12 w-full" disabled={!cc || !city}>
         <Search size={18} /> {t.simple.search}
       </button>

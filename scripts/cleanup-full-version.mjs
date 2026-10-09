@@ -24,7 +24,21 @@ if (!YES) {
   process.exit(0);
 }
 
+// emptyBucket nie schodzi do podfolderów — usuwamy pliki rekurencyjnie
+async function filesIn(bucket, prefix = "") {
+  const { data } = await admin.storage.from(bucket).list(prefix, { limit: 1000 });
+  const out = [];
+  for (const f of data ?? []) {
+    const path = prefix ? `${prefix}/${f.name}` : f.name;
+    if (f.id) out.push(path);
+    else out.push(...(await filesIn(bucket, path)));
+  }
+  return out;
+}
+
 for (const id of existing) {
+  const files = await filesIn(id);
+  for (let i = 0; i < files.length; i += 100) await admin.storage.from(id).remove(files.slice(i, i + 100));
   const empty = await admin.storage.emptyBucket(id);
   const del = await admin.storage.deleteBucket(id);
   console.log(`${del.error || empty.error ? "❌" : "✓"} folder ${id}${del.error ? `: ${del.error.message}` : ""}`);

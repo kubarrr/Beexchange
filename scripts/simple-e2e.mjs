@@ -98,6 +98,29 @@ section("Zakładka wynika z semestru");
   check("Wyniki niosą znacznik 🏠 szuka mieszkania", h?.looking_for_housing === true);
 }
 
+section("Filtr semestru");
+{
+  const sem = (b, kind, cc, city, p_sem) => b.db.rpc("simple_search", { p_kind: kind, p_cc: cc, p_city: city, p_inst: null, p_sem });
+  check("Jadą w lecie 2026/27 → Zosia", names((await sem(giulia, "going", "IT", "Milan", "2027S")).data).includes("Bot Zosia"));
+  check("Jadą w zimie 2027/28 → nie Zosia", !names((await sem(giulia, "going", "IT", "Milan", "2027W")).data).includes("Bot Zosia"));
+  check("Są lub byli w zimie 2026/27 → Ola", names((await sem(zosia, "been", "IT", "Milan", "2026W")).data).includes("Bot Ola"));
+  check("…a w lecie 2025/26 → nie Ola", !names((await sem(zosia, "been", "IT", "Milan", "2026S")).data).includes("Bot Ola"));
+  const all = (await anon.rpc("simple_count", { p_kind: "going", p_cc: "IT", p_city: "Milan" })).data;
+  const later = (await anon.rpc("simple_count", { p_kind: "going", p_cc: "IT", p_city: "Milan", p_sem: "2027W" })).data;
+  check("Licznik dla niezalogowanych też uwzględnia semestr", typeof later === "number" && later < all, `${later} / ${all}`);
+}
+
+section("Filtr „Skąd” (kraj uczelni macierzystej)");
+{
+  const from = (b, kind, p_from) => b.db.rpc("simple_search", { p_kind: kind, p_cc: "IT", p_city: "Milan", p_from });
+  check("Jadą z Polski → Zosia", names((await from(giulia, "going", "PL")).data).includes("Bot Zosia"));
+  check("Jadą z Niemiec → nie Zosia", !names((await from(giulia, "going", "DE")).data).includes("Bot Zosia"));
+  check("Są lub byli z Polski → Ola", names((await from(zosia, "been", "PL")).data).includes("Bot Ola"));
+  const c = (await anon.rpc("simple_count", { p_kind: "going", p_cc: "IT", p_city: "Milan", p_from: "DE" })).data;
+  const all = (await anon.rpc("simple_count", { p_kind: "going", p_cc: "IT", p_city: "Milan" })).data;
+  check("Licznik dla niezalogowanych też uwzględnia kraj", typeof c === "number" && c < all, `${c} / ${all}`);
+}
+
 section("Niezalogowani widzą tylko liczbę");
 {
   const { data: people } = await anon.from("simple_people").select("display_name, instagram");
@@ -133,7 +156,24 @@ await page("/?tab=going&cc=IT&city=Milan", ["Bot Zosia", "instagram.com/bot.zosi
 }
 {
   const html = await page("/?tab=going&cc=IT&city=Milan", ["Bot Zosia"], giulia);
-  check("Przy „Jadą” nie pokazujemy uczelni macierzystej", !html.includes("Studiuje na"));
+  check("Przy „Jadą” widać uczelnię macierzystą", html.includes("Studiuje na") && html.includes("Politechnika Warszawska"));
+  const pl = await page("/?tab=going&cc=IT&city=Milan&from=PL", ["Skąd"], giulia);
+  check("Filtr „Skąd: Polska” → Zosia (PW)", pl.includes("Bot Zosia"));
+  const it = await page("/?tab=going&cc=IT&city=Milan&from=IT", [], giulia);
+  check("Filtr „Skąd: Włochy” → bez Zosi", !it.includes("Bot Zosia"));
+}
+{
+  // Bez wybranego miejsca: uczelnia wymiany z profilu (Zosia jedzie na PoliMi)
+  const html = await page("/", ["Twoja uczelnia wymiany z profilu", "Bot Zosia"], zosia);
+  check("Domyślnie szukamy na uczelni wymiany z profilu", html.includes("Politecnico di Milano"));
+  await page("/?tab=helper&mode=home", ["Twoja uczelnia macierzysta z profilu", "Bot Ola"], zosia);
+  const later = await page("/?tab=going&cc=IT&city=Milan&sem=2027W", ["Semestr"], giulia);
+  check("Filtr semestru na stronie: zima 2027/28 → bez Zosi (lato 2026/27)", !later.includes("Bot Zosia"));
+}
+{
+  // Ola była na PoliMi w zimie 2026/27 — widać to przy niej jako buddy
+  const html = await page(`/?tab=helper&mode=home&inst=${PW}`, ["Bot Ola", "Wymiana:"], zosia);
+  check("Przy buddy widać, gdzie i kiedy był(a) na wymianie", html.includes("Politecnico di Milano") && html.includes("zima 2026/27"));
 }
 await page("/me", ["Twój profil", "Bot Zosia", "Jestem buddy"], zosia);
 await page("/?tab=going&cc=IT&city=Milan", ["Find people flying where", "Your buddy", "My profile"], giulia, "en");

@@ -36,16 +36,29 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const tab: Tab = TABS.includes(str(sp.tab) as Tab) ? (str(sp.tab) as Tab) : "going";
   // „Twój buddy”: na Twojej uczelni (wystarczy uczelnia) albo na uczelni wymiany (kraj, miasto, opcjonalnie uczelnia)
   const mode: "home" | "host" = tab === "helper" && str(sp.mode) === "home" ? "home" : "host";
+  const sem = tab !== "helper" && /^\d{4}[WS]$/.test(str(sp.sem)) ? str(sp.sem) : null;
+  // „Skąd”: kraj uczelni macierzystej (tylko „Jadą” i „Są lub byli”)
+  const from = tab !== "helper" && /^[A-Z]{2}$/.test(str(sp.from)) ? str(sp.from) : null;
   let instId = Number(str(sp.inst)) || null;
-  // Zalogowanemu podpowiadamy jego uczelnię macierzystą
-  if (mode === "home" && !instId && userId) {
-    instId = ((await supabase.from("simple_people").select("home_institution_id").eq("user_id", userId).maybeSingle()).data?.home_institution_id as number | null) ?? null;
+  // Zalogowanemu bez wybranego miejsca podpowiadamy uczelnię z profilu:
+  // „Na Twojej uczelni” → macierzystą, pozostałe → uczelnię wymiany (najbliższą przyszłą, inaczej ostatnią)
+  let prefilled = false;
+  if (userId && !instId && !str(sp.cc) && !str(sp.city)) {
+    if (mode === "home") {
+      instId = ((await supabase.from("simple_people").select("home_institution_id").eq("user_id", userId).maybeSingle()).data?.home_institution_id as number | null) ?? null;
+    } else {
+      const mine = (((await supabase.from("simple_entries").select("institution_id, semester").eq("user_id", userId).neq("kind", "helper")).data ?? []) as { institution_id: number; semester: string | null }[])
+        .filter((e): e is { institution_id: number; semester: string } => !!e.semester)
+        .sort((a, b) => b.semester.localeCompare(a.semester));
+      instId = (mine.filter((e) => semesterPhase(e.semester) === "upcoming").at(-1) ?? mine[0])?.institution_id ?? null;
+    }
+    prefilled = !!instId;
   }
   const inst = instId ? ((await supabase.from("institutions").select(INSTITUTION_FIELDS).eq("id", instId).maybeSingle()).data as Institution | null) : null;
-  const cc = mode === "home" ? (inst?.country_code ?? "") : /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
-  const city = mode === "home" ? (inst?.city ?? "") : str(sp.city).slice(0, 80);
+  const cc = mode === "home" || prefilled ? (inst?.country_code ?? "") : /^[A-Z]{2}$/.test(str(sp.cc)) ? str(sp.cc) : "";
+  const city = mode === "home" || prefilled ? (inst?.city ?? "") : str(sp.city).slice(0, 80);
   const ready = !!cc && !!city && (mode === "host" || !!inst);
-  const args = { p_kind: tab, p_cc: cc, p_city: city, p_inst: instId };
+  const args = { p_kind: tab, p_cc: cc, p_city: city, p_inst: instId, p_sem: sem, ...(from ? { p_from: from } : {}) };
 
   // Zalogowani widzą osoby, niezalogowani tylko liczbę
   let hits: Hit[] = [];
@@ -58,13 +71,30 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   }
 
   // Uczelnie z wyników (uczelnia wpisu i uczelnia macierzysta)
-  const ids = [...new Set(hits.flatMap((h) => [h.institution_id, h.home_id]).filter((x): x is number => !!x))];
+  // 🧸 Buddy: gdzie i kiedy sami byli na wymianie
+  const trips = new Map<string, { institution_id: number; semester: string }[]>();
+  if (tab === "helper" && hits.length) {
+    const { data } = await supabase.from("simple_entries").select("user_id, institution_id, semester").in("user_id", hits.map((h) => h.user_id)).neq("kind", "helper").not("semester", "is", null).order("semester", { ascending: false });
+    for (const e of (data ?? []) as { user_id: string; institution_id: number; semester: string }[]) trips.set(e.user_id, [...(trips.get(e.user_id) ?? []), e]);
+  }
+  const ids = [...new Set([...hits.flatMap((h) => [h.institution_id, h.home_id]), ...[...trips.values()].flat().map((e) => e.institution_id)].filter((x): x is number => !!x))];
   const insts = new Map<number, Institution>();
   if (ids.length) for (const i of ((await supabase.from("institutions").select(INSTITUTION_FIELDS).in("id", ids)).data ?? []) as Institution[]) insts.set(i.id, i);
 
   const countries = ALL_COUNTRY_CODES.map((c) => ({ c, n: countryName(c, locale) })).sort((a, b) => a.n.localeCompare(b.n, locale));
-  const tabHref = (k: Tab, m: "home" | "host" = mode) =>
-    `/?${new URLSearchParams({ tab: k, ...(k === "helper" && m === "home" ? { mode: "home" } : {}), ...(m === "host" && cc ? { cc } : {}), ...(m === "host" && city ? { city } : {}), ...(instId ? { inst: String(instId) } : {}) }).toString()}`;
+  // Miejsce przenosimy między zakładkami tylko w obrębie tego samego rodzaju (uczelnia wymiany ↔ macierzysta się nie mieszają)
+  const tabHref = (k: Tab, m: "home" | "host" = mode) => {
+    const toHome = k === "helper" && m === "home";
+    const carry = !prefilled && toHome === (mode === "home");
+    const q: Record<string, string> = { tab: k };
+    if (toHome) q.mode = "home";
+    if (carry && !toHome && cc) q.cc = cc;
+    if (carry && !toHome && city) q.city = city;
+    if (carry && instId) q.inst = String(instId);
+    if (k === tab && sem) q.sem = sem;
+    if (carry && k !== "helper" && from) q.from = from;
+    return `/?${new URLSearchParams(q).toString()}`;
+  };
   const loginHref = `/login?next=${encodeURIComponent(tabHref(tab))}`;
 
   return (
@@ -108,11 +138,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
       )}
       <p className="text-sm text-muted">{tab === "helper" ? t.simple.buddyLead[mode] : t.simple.tabLead[tab]}</p>
+      {prefilled && <p className="text-[13px] font-semibold">{t.simple.prefilled[mode]}</p>}
 
       {mode === "home" ? (
         <HomeUniForm key={`home:${instId}`} locale={locale} initial={inst} />
       ) : (
-        <SearchForm key={`${cc}:${city}:${instId}`} locale={locale} tab={tab} initial={{ cc, city, inst }} countries={countries} />
+        <SearchForm key={`${cc}:${city}:${instId}:${sem}:${from}`} locale={locale} tab={tab} initial={{ cc, city, inst, sem, from }} countries={countries} />
       )}
 
       {!ready ? (
@@ -167,8 +198,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                       </span>
                     </p>
                   )}
-                  {/* Uczelnia macierzysta tylko przy „Twój buddy” */}
-                  {tab === "helper" && home && (
+                  {home && (
                     <p className="flex min-w-0 items-start gap-1.5 text-[13px]">
                       <Flag code={home.country_code} className="mt-[3px] h-3 w-[18px]" />
                       <span>
@@ -176,6 +206,22 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                       </span>
                     </p>
                   )}
+                  {tab === "helper" &&
+                    (trips.get(h.user_id) ?? []).slice(0, 3).map((e) => {
+                      const ex = insts.get(e.institution_id);
+                      const phase = semesterPhase(e.semester);
+                      return (
+                        ex && (
+                          <p key={`${e.institution_id}:${e.semester}`} className="flex min-w-0 items-start gap-1.5 text-[13px] font-semibold text-honey-700">
+                            <span aria-hidden="true">{phase === "upcoming" ? "✈️" : phase === "now" ? "📍" : "🏛️"}</span>
+                            <Flag code={ex.country_code} className="mt-[3px] h-3 w-[18px]" />
+                            <span>
+                              <span className="font-normal text-muted">{t.simple.buddyExchange}</span> {institutionName(ex)} · {semesterLabel(e.semester, t)}
+                            </span>
+                          </p>
+                        )
+                      );
+                    })}
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {h.instagram && (
                       <a href={`https://instagram.com/${h.instagram}`} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#E1306C] px-3 py-1.5 text-xs font-bold text-white">

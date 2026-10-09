@@ -53,7 +53,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Kto widzi Twoje dane",
         body: [
           [
-            "Twój profil (imię lub ksywka, kontakty, uczelnie, semestry i znaczniki) widzą zalogowani użytkownicy serwisu — zalogować się może każda osoba z kontem Google. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy tylko w zakładce „Twój buddy”. Podawaj więc tylko takie kontakty, które chcesz udostępnić innym studentom.",
+            "Twój profil (imię lub ksywka, kontakty, uczelnie, semestry i znaczniki) widzą zalogowani użytkownicy serwisu — zalogować się może każda osoba z kontem Google. Niezalogowani widzą tylko liczbę osób, bez żadnych danych. Uczelnię macierzystą pokazujemy przy Twoich wymianach i w zakładce „Twój buddy”, a inni mogą filtrować osoby po jej kraju. Podawaj więc tylko takie kontakty, które chcesz udostępnić innym studentom.",
             "Linki do Instagrama i Facebooka oraz numer WhatsApp podajesz dobrowolnie; prowadzą do usług tych firm, na których zasady prywatności nie mamy wpływu.",
             "Twojego adresu e-mail nie pokazujemy innym użytkownikom.",
           ],
@@ -137,7 +137,7 @@ export const PRIVACY: Record<"pl" | "en", { title: string; updated: string; sect
         title: "4. Who can see your data",
         body: [
           [
-            "Your profile (name or nickname, contacts, universities, semesters and flags) is visible to signed-in users — anyone with a Google account can sign in. Visitors who are not signed in see only the number of people, without any data. Your home university is shown only under “Your buddy”. Only add contacts you are happy to share with other students.",
+            "Your profile (name or nickname, contacts, universities, semesters and flags) is visible to signed-in users — anyone with a Google account can sign in. Visitors who are not signed in see only the number of people, without any data. Your home university is shown next to your exchanges and under “Your buddy”, and others can filter people by its country. Only add contacts you are happy to share with other students.",
             "Instagram and Facebook links and your WhatsApp number are provided voluntarily; they lead to those companies' services, whose privacy rules we do not control.",
             "Your email address is never shown to other users.",
           ],

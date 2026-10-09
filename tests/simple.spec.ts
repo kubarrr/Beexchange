@@ -82,7 +82,7 @@ test.describe.serial("BeeXchange (wersja prosta)", () => {
     await expect(card).toContainText("lato 2026/27");
     await expect(card.getByRole("link", { name: "Instagram" })).toHaveAttribute("href", "https://instagram.com/ania.test");
     await expect(card.getByRole("link", { name: "Zgłoś" })).toHaveAttribute("href", new RegExp(`^mailto:.*${ania.id}`));
-    await expect(card).not.toContainText("Studiuje na");
+    await expect(card).toContainText("Studiuje na Szkoła Główna Handlowa");
     await expect(card).toContainText("🏠 szuka mieszkania");
     await expect(card).toContainText("🧸 buddy");
     await shot(a, "s3-jada");
